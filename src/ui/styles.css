@@ -1264,9 +1264,15 @@ textarea.input {
 
 .renoteBox {
   margin-top: 6px;
-  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
-  background: color-mix(in oklab, var(--panel) 65%, transparent);
+  border: none;
+  background: transparent;
   padding: 8px;
+}
+
+.postCardEmbedded {
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .replyBox {
@@ -1301,9 +1307,9 @@ textarea.input {
 }
 
 .inspectCard {
-  border: 1px solid var(--border);
-  background: var(--panel);
-  padding: 10px;
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .inspectReply {

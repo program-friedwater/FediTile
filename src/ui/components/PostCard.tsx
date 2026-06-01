@@ -31,6 +31,7 @@ export function PostCard(props: {
   onToggleCw: (key: string) => void;
   onInspectPost?: (post: Post) => void;
   onInspectAuthor?: (post: Post) => void;
+  embedded?: boolean;
 
   onReply?: (post: Post) => void;
   onRenoteMenu?: (post: Post) => void;
@@ -133,8 +134,12 @@ export function PostCard(props: {
 
   const onInspectPost = () => props.onInspectPost?.(p);
 
-  return (
-    <div className="listItem" onClick={onInspectPost} style={props.onInspectPost ? { cursor: "pointer" } : undefined}>
+  const content = (
+    <div
+      className={props.embedded ? "postCardEmbedded" : "listItem"}
+      onClick={props.embedded ? undefined : onInspectPost}
+      style={!props.embedded && props.onInspectPost ? { cursor: "pointer" } : undefined}
+    >
       <div className="listRow">
         {p.author.avatarUrl ? (
           <img
@@ -194,6 +199,7 @@ export function PostCard(props: {
                   onToggleReaction={props.onToggleReaction}
                   onOpenLightbox={props.onOpenLightbox}
                   hideActions={true}
+                  embedded={true}
                 />
               </div>
             </>
@@ -253,5 +259,6 @@ export function PostCard(props: {
       </div>
     </div>
   );
-}
 
+  return content;
+}
