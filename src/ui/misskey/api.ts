@@ -44,6 +44,8 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
   const cw = (note?.cw as string | null | undefined) ?? undefined;
   const renote = note?.renote as MisskeyNote | undefined;
   const renotePost = renote ? normalizeMisskeyNote(account, renote) : undefined;
+  const reply = note?.reply as MisskeyNote | undefined;
+  const replyPost = reply ? normalizeMisskeyNote(account, reply) : undefined;
   const noteEmojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
   const userEmojis = (author?.emojis as Record<string, string> | undefined) ?? undefined;
   const emojis =
@@ -95,6 +97,8 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
     customEmojis: emojis,
     repostOfUri: renotePost?.uri,
     repostOf: renotePost,
+    replyToUri: replyPost?.uri,
+    replyTo: replyPost,
     url: noteUri(account, note),
   };
 }

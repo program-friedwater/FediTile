@@ -254,6 +254,19 @@ export function TileTimeline(props: Props) {
 
                 const renderBody = (post: Post) => (
                   <>
+                    {post.replyTo ? (
+                      <div className="replyBox" aria-label="Replying to">
+                        <div className="replyHeader">
+                          <span className="replyToLabel">Replying to</span>
+                          <span className="replyToHandle">{post.replyTo.author.handle}</span>
+                        </div>
+                        <div className="replySnippet">
+                          {post.replyTo.contentFormat === "mfm"
+                            ? renderMfm(post.replyTo.content, { emojiResolver: buildEmojiResolver({ emojis: post.replyTo.customEmojis, global: emojiList }) })
+                            : post.replyTo.content}
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="listMeta">
                       {post.contentFormat === "mfm"
                         ? renderMfm(post.content, { emojiResolver: buildEmojiResolver({ emojis: post.customEmojis, global: emojiList }) })

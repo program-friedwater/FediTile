@@ -81,6 +81,7 @@ export type Post = {
   tags?: string[];
 
   replyToUri?: Uri;
+  replyTo?: Post;
   repostOfUri?: Uri;
   repostOf?: Post;
 
