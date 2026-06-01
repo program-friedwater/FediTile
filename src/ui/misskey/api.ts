@@ -151,14 +151,15 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
 export async function createNote(
   account: MisskeyAccount,
   args: {
-    text: string;
+    text?: string;
     cw?: string;
     visibility?: "public" | "home" | "followers" | "specified";
     replyId?: string;
     renoteId?: string;
   },
 ): Promise<Post> {
-  const body: Record<string, unknown> = { text: args.text };
+  const body: Record<string, unknown> = {};
+  if (typeof args.text === "string" && args.text.trim().length > 0) body.text = args.text;
   if (args.cw) body.cw = args.cw;
   if (args.visibility) body.visibility = args.visibility;
   if (args.replyId) body.replyId = args.replyId;

@@ -481,7 +481,7 @@ export function TileTimeline(props: Props) {
                       const account = accounts.misskey[0];
                       if (!account) return;
                       try {
-                        const created = await createNote(account, { text: "", renoteId: noteId, visibility: "public" });
+                        const created = await createNote(account, { renoteId: noteId, visibility: "public" });
                         setItems((prev) => {
                           const key = created.uri ?? created.remoteId;
                           if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
