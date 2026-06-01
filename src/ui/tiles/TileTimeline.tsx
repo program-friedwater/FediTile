@@ -20,6 +20,24 @@ type Props = {
 
 const PAGE_SIZE = 40;
 
+function renderNameWithEmojis(name: string, emojiResolver: (shortcode: string) => string | null | undefined) {
+  const parts: React.ReactNode[] = [];
+  const re = /:([0-9A-Za-z_+-]+):/g;
+  let last = 0;
+  for (;;) {
+    const m = re.exec(name);
+    if (!m) break;
+    if (m.index > last) parts.push(name.slice(last, m.index));
+    const sc = m[1] ?? "";
+    const url = sc ? emojiResolver(sc) : null;
+    if (url) parts.push(<img key={`${m.index}:${sc}`} className="mfmEmoji" src={url} alt={`:${sc}:`} loading="lazy" decoding="async" />);
+    else parts.push(m[0]);
+    last = m.index + m[0].length;
+  }
+  if (last < name.length) parts.push(name.slice(last));
+  return parts;
+}
+
 export function TileTimeline(props: Props) {
   const queryKey = useMemo(() => JSON.stringify(props.query), [props.query]);
   const [items, setItems] = useState<Post[]>(() => getMockTimelinePage(props.query, 0, PAGE_SIZE));
@@ -156,7 +174,12 @@ export function TileTimeline(props: Props) {
             )}
             <div style={{ minWidth: 0 }}>
               <div className="listTitleRow">
-                <span className="listTitle">{p.author.displayName ?? p.author.handle}</span>
+                <span className="listTitle">
+                  {renderNameWithEmojis(
+                    p.author.displayName ?? p.author.handle,
+                    buildEmojiResolver({ emojis: p.customEmojis, global: emojiList }),
+                  )}
+                </span>
                 <span className="listHandleMuted">{p.author.handle}</span>
               </div>
               {(() => {
@@ -261,7 +284,12 @@ export function TileTimeline(props: Props) {
                           )}
                           <div style={{ minWidth: 0 }}>
                             <div className="listTitleRow">
-                              <span className="listTitle">{p.repostOf.author.displayName ?? p.repostOf.author.handle}</span>
+                              <span className="listTitle">
+                                {renderNameWithEmojis(
+                                  p.repostOf.author.displayName ?? p.repostOf.author.handle,
+                                  buildEmojiResolver({ emojis: p.repostOf.customEmojis, global: emojiList }),
+                                )}
+                              </span>
                               <span className="listHandleMuted">{p.repostOf.author.handle}</span>
                             </div>
                             {p.repostOf.cw ? (
