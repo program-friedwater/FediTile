@@ -14,6 +14,8 @@ import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../misskey/emo
 import { ReplyIcon, RepeatIcon, SmileIcon } from "../icons";
 import { MediaLightboxModal, type LightboxItem } from "../components/MediaLightboxModal";
 import { Modal } from "../components/Modal";
+import { emitComposeIntent, postToReplyIntent } from "../state/composeBus";
+import { loadWorkspace } from "./workspaceStore";
 
 type Props = {
   query: TileQuery;
@@ -352,8 +354,19 @@ export function TileTimeline(props: Props) {
                 <button
                   className="postIconBtn"
                   title="Reply"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
+                    try {
+                      const ws = loadWorkspace();
+                      const hasCompose = !!ws?.tiles?.some((t) => t.query?.kind === "compose");
+                      if (hasCompose) {
+                        const intent = postToReplyIntent(p);
+                        if (intent) emitComposeIntent(intent);
+                        return;
+                      }
+                    } catch {
+                      // ignore
+                    }
                     setModal({ mode: "reply", post: p });
                   }}
                 >

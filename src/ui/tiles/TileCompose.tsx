@@ -1,20 +1,36 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { loadAccounts } from "../accounts/accountsStore";
 import { createNote } from "../misskey/api";
 import { Button } from "../components/Button";
 import { FieldRow, Input, Label, Select, Textarea } from "../components/Field";
 import { Pill } from "../components/Pill";
+import { onComposeIntent, type ComposeIntent } from "../state/composeBus";
 
 type Draft = {
   cw: string;
   text: string;
   visibility: "public" | "unlisted" | "followers" | "direct";
+  replyId?: string;
 };
 
 export function TileCompose(props: { onPosted?: () => void }) {
   const [draft, setDraft] = useState<Draft>({ cw: "", text: "", visibility: "public" });
   const [posting, setPosting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
+  const [replyingTo, setReplyingTo] = useState<ComposeIntent | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    return onComposeIntent((intent) => {
+      if (intent.type !== "reply") return;
+      setReplyingTo(intent);
+      setDraft((d) => ({ ...d, replyId: intent.noteId }));
+      queueMicrotask(() => {
+        const el = rootRef.current?.querySelector("textarea");
+        (el as HTMLTextAreaElement | null)?.focus();
+      });
+    });
+  }, []);
 
   const remaining = useMemo(() => {
     // Placeholder: real limits differ per service/connector
@@ -23,7 +39,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
   }, [draft.text.length]);
 
   return (
-    <div className="composeLayout">
+    <div className="composeLayout" ref={rootRef}>
       <FieldRow>
         <Label>Content warning (optional)</Label>
         <Input value={draft.cw} onChange={(e) => setDraft((d) => ({ ...d, cw: e.target.value }))} placeholder="CW" />
@@ -38,6 +54,21 @@ export function TileCompose(props: { onPosted?: () => void }) {
           placeholder="Write something…"
         />
       </FieldRow>
+
+      {replyingTo ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+          <Pill>Replying to {replyingTo.authorHandle}</Pill>
+          <Button
+            onClick={() => {
+              setReplyingTo(null);
+              setDraft((d) => ({ ...d, replyId: undefined }));
+            }}
+            title="Clear reply target"
+          >
+            Clear
+          </Button>
+        </div>
+      ) : null}
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -77,8 +108,11 @@ export function TileCompose(props: { onPosted?: () => void }) {
                 text: draft.text,
                 cw: draft.cw.trim() ? draft.cw.trim() : undefined,
                 visibility: vis,
+                replyId: draft.replyId,
               });
               setDraft((d) => ({ ...d, text: "" }));
+              setReplyingTo(null);
+              setDraft((d) => ({ ...d, replyId: undefined }));
               setStatus("Posted.");
               props.onPosted?.();
             } catch (e) {
