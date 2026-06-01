@@ -186,3 +186,23 @@ export async function showNote(account: MisskeyAccount, args: { noteId: string }
   const note = await postJson<MisskeyNote>(account, "notes/show", { noteId: args.noteId });
   return normalizeMisskeyNote(account, note);
 }
+
+export async function showUser(
+  account: MisskeyAccount,
+  args: { userId: string },
+): Promise<{ author: Post["author"]; noteCount?: number }> {
+  const user = await postJson<any>(account, "users/show", { userId: args.userId });
+  const instanceHost = hostFromInstanceUrl(account.instanceUrl);
+  const username = (user?.username as string | undefined) ?? "unknown";
+  const host = (user?.host as string | null | undefined) ?? instanceHost;
+  return {
+    author: {
+      remoteId: (user?.id as any) ?? undefined,
+      handle: host ? `@${username}@${host}` : `@${username}`,
+      displayName: user?.name ?? username,
+      avatarUrl: user?.avatarUrl ?? undefined,
+      url: user?.host ? `${account.instanceUrl}/@${username}@${user.host}` : `${account.instanceUrl}/@${username}`,
+    },
+    noteCount: typeof user?.notesCount === "number" ? user.notesCount : undefined,
+  };
+}

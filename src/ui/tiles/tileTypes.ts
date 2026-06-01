@@ -11,7 +11,8 @@ export type TileQuery =
   | { kind: "hashtag"; tag: string }
   | { kind: "search"; q: string }
   | { kind: "notifications" }
-  | { kind: "compose" };
+  | { kind: "compose" }
+  | { kind: "inspect" };
 
 export type Tile = {
   id: TileId;
@@ -53,6 +54,8 @@ export function tileKindLabel(kind: TimelineKind | TileQuery["kind"]): string {
       return "Notifications";
     case "compose":
       return "Compose";
+    case "inspect":
+      return "Inspect";
     default:
       return String(kind);
   }

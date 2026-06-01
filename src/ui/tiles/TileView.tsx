@@ -3,6 +3,7 @@ import type { Tile, TileSize } from "./tileTypes";
 import { tileKindLabel } from "./tileTypes";
 import { TileTimeline } from "./TileTimeline";
 import { TileCompose } from "./TileCompose";
+import { TileInspect } from "./TileInspect";
 import { IconButton } from "../components/Button";
 import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon } from "../icons";
 
@@ -70,6 +71,8 @@ export function TileView(props: Props) {
         return <SearchIcon />;
       case "compose":
         return <PenIcon />;
+      case "inspect":
+        return <SearchIcon />;
       default:
         return null;
     }
@@ -270,7 +273,13 @@ export function TileView(props: Props) {
       </div>
 
       <div className="tileBody">
-        {props.tile.query.kind === "compose" ? <TileCompose /> : <TileTimeline query={props.tile.query} />}
+        {props.tile.query.kind === "compose" ? (
+          <TileCompose />
+        ) : props.tile.query.kind === "inspect" ? (
+          <TileInspect />
+        ) : (
+          <TileTimeline query={props.tile.query} />
+        )}
       </div>
 
       {resizable ? (

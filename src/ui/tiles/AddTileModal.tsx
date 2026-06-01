@@ -27,6 +27,8 @@ export function AddTileModal(props: Props) {
         return { kind, q: q.trim() || "feditile" };
       case "compose":
         return { kind };
+      case "inspect":
+        return { kind };
       case "home":
       case "local":
       case "federated":
@@ -68,6 +70,7 @@ export function AddTileModal(props: Props) {
               <option value="federated">Federated</option>
               <option value="notifications">Notifications</option>
               <option value="compose">Compose</option>
+              <option value="inspect">Inspect</option>
               <option value="hashtag">Hashtag</option>
               <option value="search">Search</option>
         </Select>

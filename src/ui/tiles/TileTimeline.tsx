@@ -16,6 +16,7 @@ import { MediaLightboxModal, type LightboxItem } from "../components/MediaLightb
 import { Modal } from "../components/Modal";
 import { emitComposeIntent, postToReplyIntent } from "../state/composeBus";
 import { loadWorkspace } from "./workspaceStore";
+import { emitInspectIntent } from "../state/inspectBus";
 
 type Props = {
   query: TileQuery;
@@ -169,10 +170,30 @@ export function TileTimeline(props: Props) {
         endThresholdPx={900}
         onNearEnd={loadMore}
         renderItem={(p, idx) => (
-          <div className="listItem" key={`${p.createdAt}-${idx}`}>
+          <div
+            className="listItem"
+            key={`${p.createdAt}-${idx}`}
+            onClick={() => {
+              emitInspectIntent({ type: "post", post: p });
+            }}
+            style={{ cursor: "pointer" }}
+            title="Inspect post"
+          >
             <div className="listRow">
             {p.author.avatarUrl ? (
-              <img className="avatar" src={p.author.avatarUrl} alt="" loading="lazy" decoding="async" />
+              <img
+                className="avatar"
+                src={p.author.avatarUrl}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  emitInspectIntent({ type: "author", author: p.author });
+                }}
+                style={{ cursor: "pointer" }}
+                title="Inspect user"
+              />
             ) : (
               <div className="avatar avatarFallback" aria-hidden="true" />
             )}
