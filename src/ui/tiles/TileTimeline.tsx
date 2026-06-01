@@ -150,7 +150,7 @@ export function TileTimeline(props: Props) {
               <div className="avatar avatarFallback" aria-hidden="true" />
             )}
             <div style={{ minWidth: 0 }}>
-              <div className="listTitle">{p.author.displayName ?? p.author.handle}</div>
+              <div className="listTitle">{p.author.handle}</div>
               {(() => {
                 const key = (p.uri ?? (p.remoteId as any as string) ?? `${p.createdAt}-${idx}`) as string;
                 const open = cwOpen[key] === true;
@@ -252,7 +252,7 @@ export function TileTimeline(props: Props) {
                             <div className="avatar avatarFallback" aria-hidden="true" />
                           )}
                           <div style={{ minWidth: 0 }}>
-                            <div className="listTitle">{p.repostOf.author.displayName ?? p.repostOf.author.handle}</div>
+                            <div className="listTitle">{p.repostOf.author.handle}</div>
                             {p.repostOf.cw ? (
                               <div className="cwLine">
                                 <span className="cwText">{p.repostOf.cw}</span>

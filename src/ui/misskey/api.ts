@@ -33,6 +33,16 @@ function normalizeNote(account: MisskeyAccount, note: MisskeyNote): Post {
   const files = Array.isArray(note?.files) ? note.files : [];
   const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
 
+  const instanceHost = (() => {
+    try {
+      return new URL(account.instanceUrl).host;
+    } catch {
+      return "";
+    }
+  })();
+  const username = (author?.username as string | undefined) ?? "unknown";
+  const host = (author?.host as string | null | undefined) ?? instanceHost;
+
   return {
     serviceId: "misskey",
     accountId: undefined,
@@ -40,10 +50,10 @@ function normalizeNote(account: MisskeyAccount, note: MisskeyNote): Post {
     remoteId: (note?.id as any) ?? undefined,
     createdAt,
     author: {
-      handle: author?.username ? `@${author.username}` : "unknown",
-      displayName: author?.name ?? author?.username ?? "unknown",
+      handle: host ? `@${username}@${host}` : `@${username}`,
+      displayName: author?.name ?? username,
       avatarUrl: author?.avatarUrl ?? undefined,
-      url: author?.host ? `${account.instanceUrl}/@${author.username}@${author.host}` : `${account.instanceUrl}/@${author.username}`,
+      url: author?.host ? `${account.instanceUrl}/@${username}@${author.host}` : `${account.instanceUrl}/@${username}`,
     },
     contentFormat: "mfm",
     content: text || (renotePost ? "" : ""),
