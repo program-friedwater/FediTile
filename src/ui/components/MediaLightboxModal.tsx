@@ -41,6 +41,9 @@ export function MediaLightboxModal(props: {
       }}
     >
       <div className="lightboxStage" onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="lightboxClose" onClick={props.onClose} aria-label="Close">
+          ×
+        </button>
         {!atStart ? (
           <button type="button" className="lightboxNav lightboxNavLeft" onClick={props.onPrev} aria-label="Previous image">
             ‹
@@ -56,4 +59,3 @@ export function MediaLightboxModal(props: {
     </div>
   );
 }
-
