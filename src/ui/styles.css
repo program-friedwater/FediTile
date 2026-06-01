@@ -539,6 +539,12 @@ a:hover {
   height: 1.35em;
   vertical-align: -0.15em;
   object-fit: contain;
+  transform-origin: center;
+  transition: transform 90ms ease;
+}
+
+.mfmEmoji:hover {
+  transform: scale(1.7);
 }
 
 .emojiGrid {
