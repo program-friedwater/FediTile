@@ -1061,10 +1061,20 @@ textarea.input {
   min-width: 0;
 }
 
+.listTitleRow .listTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .listHandleMuted {
   color: var(--muted);
   font-size: 12px;
   font-weight: 650;
+  flex: 0 0 auto;
+  max-width: 48%;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
