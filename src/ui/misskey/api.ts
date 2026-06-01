@@ -3,6 +3,21 @@ import type { MisskeyAccount } from "../accounts/accountsStore";
 
 type MisskeyNote = any;
 
+function hostFromInstanceUrl(instanceUrl: string): string {
+  const raw = String(instanceUrl ?? "").trim();
+  if (!raw) return "";
+  try {
+    return new URL(raw).host;
+  } catch {
+    // Allow scheme-less input like "misskey.io"
+    try {
+      return new URL(`https://${raw}`).host;
+    } catch {
+      return raw.replace(/^https?:\/\//, "").split("/")[0] ?? "";
+    }
+  }
+}
+
 function toCursor(req: TimelineRequest): { sinceId?: string; untilId?: string; limit: number } {
   const limit = typeof req.limit === "number" ? req.limit : 40;
   if (!req.cursor) return { limit };
@@ -33,13 +48,7 @@ function normalizeNote(account: MisskeyAccount, note: MisskeyNote): Post {
   const files = Array.isArray(note?.files) ? note.files : [];
   const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
 
-  const instanceHost = (() => {
-    try {
-      return new URL(account.instanceUrl).host;
-    } catch {
-      return "";
-    }
-  })();
+  const instanceHost = hostFromInstanceUrl(account.instanceUrl);
   const username = (author?.username as string | undefined) ?? "unknown";
   const host = (author?.host as string | null | undefined) ?? instanceHost;
 
