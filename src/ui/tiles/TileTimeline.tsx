@@ -13,6 +13,7 @@ import { EmojiPickerModal } from "./EmojiPickerModal";
 import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../misskey/emojis";
 import { ReplyIcon, RepeatIcon, SmileIcon } from "../icons";
 import { MediaLightboxModal, type LightboxItem } from "../components/MediaLightboxModal";
+import { Modal } from "../components/Modal";
 
 type Props = {
   query: TileQuery;
@@ -53,6 +54,7 @@ export function TileTimeline(props: Props) {
   const [emojiList, setEmojiList] = useState<MisskeyEmoji[]>([]);
   const [cwOpen, setCwOpen] = useState<Record<string, boolean>>({});
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
+  const [errorText, setErrorText] = useState<string | null>(null);
 
   useEffect(() => {
     return onAccountsChanged(() => setAccountsEpoch((n) => n + 1));
@@ -473,17 +475,21 @@ export function TileTimeline(props: Props) {
                     onClick={async () => {
                       setActionMenuFor(null);
                       if (mode !== "misskey") return;
-                      const noteId = (p.remoteId as any as string | undefined) ?? "";
+                      const noteId = ((p.repostOf?.remoteId ?? p.remoteId) as any as string | undefined) ?? "";
                       if (!noteId) return;
                       const accounts = await loadAccounts();
                       const account = accounts.misskey[0];
                       if (!account) return;
-                      const created = await createNote(account, { text: "", renoteId: noteId, visibility: "public" });
-                      setItems((prev) => {
-                        const key = created.uri ?? created.remoteId;
-                        if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
-                        return [created, ...prev].slice(0, 500);
-                      });
+                      try {
+                        const created = await createNote(account, { text: "", renoteId: noteId, visibility: "public" });
+                        setItems((prev) => {
+                          const key = created.uri ?? created.remoteId;
+                          if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
+                          return [created, ...prev].slice(0, 500);
+                        });
+                      } catch (e) {
+                        setErrorText(e instanceof Error ? e.message : String(e));
+                      }
                     }}
                   >
                     Renote
@@ -567,6 +573,10 @@ export function TileTimeline(props: Props) {
           });
         }}
       />
+
+      <Modal isOpen={!!errorText} title="Error" onClose={() => setErrorText(null)}>
+        <div style={{ whiteSpace: "pre-wrap" }}>{errorText}</div>
+      </Modal>
     </>
   );
 }
