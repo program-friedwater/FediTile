@@ -1,7 +1,7 @@
 import type { Cursor, Post, TimelinePage, TimelineRequest, Uri } from "../../domain/types";
 import type { MisskeyAccount } from "../accounts/accountsStore";
 
-type MisskeyNote = any;
+export type MisskeyNote = any;
 
 function hostFromInstanceUrl(instanceUrl: string): string {
   const raw = String(instanceUrl ?? "").trim();
@@ -37,13 +37,13 @@ function noteUri(account: MisskeyAccount, note: MisskeyNote): Uri | undefined {
   return (`${account.instanceUrl}/notes/${id}` as Uri);
 }
 
-function normalizeNote(account: MisskeyAccount, note: MisskeyNote): Post {
+export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote): Post {
   const createdAt = (note?.createdAt as string | undefined) ?? new Date().toISOString();
   const author = note?.user ?? {};
   const text = (note?.text as string | null | undefined) ?? "";
   const cw = (note?.cw as string | null | undefined) ?? undefined;
   const renote = note?.renote as MisskeyNote | undefined;
-  const renotePost = renote ? normalizeNote(account, renote) : undefined;
+  const renotePost = renote ? normalizeMisskeyNote(account, renote) : undefined;
   const emojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
   const files = Array.isArray(note?.files) ? note.files : [];
   const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
@@ -135,7 +135,7 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
   if (req.kind === "home") endpoint = "notes/timeline";
 
   const notes = await postJson<MisskeyNote[]>(account, endpoint, body);
-  const items = notes.map((n) => normalizeNote(account, n));
+  const items = notes.map((n) => normalizeMisskeyNote(account, n));
   const nextCursor: Cursor | undefined = items.length > 0 ? { type: "max_id", value: String(notes[notes.length - 1]?.id) } : undefined;
   return { items, nextCursor };
 }
@@ -158,7 +158,7 @@ export async function createNote(
   const note = await postJson<MisskeyNote>(account, "notes/create", body);
   // Some instances respond with { createdNote: {...} }
   const created = (note as any)?.createdNote ?? note;
-  return normalizeNote(account, created);
+  return normalizeMisskeyNote(account, created);
 }
 
 export async function reactToNote(account: MisskeyAccount, args: { noteId: string; reaction: string }): Promise<void> {
@@ -171,5 +171,5 @@ export async function unreactToNote(account: MisskeyAccount, args: { noteId: str
 
 export async function showNote(account: MisskeyAccount, args: { noteId: string }): Promise<Post> {
   const note = await postJson<MisskeyNote>(account, "notes/show", { noteId: args.noteId });
-  return normalizeNote(account, note);
+  return normalizeMisskeyNote(account, note);
 }
