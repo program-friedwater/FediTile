@@ -1,0 +1,951 @@
+:root {
+  color-scheme: light dark;
+  --bg: #070a10;
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-strong: rgba(255, 255, 255, 0.08);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.7);
+  --border: rgba(255, 255, 255, 0.14);
+  --accent: #7dd3fc;
+  --accent2: #a78bfa;
+  --danger: #fb7185;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --radius: 0px;
+  --tile-gap: 12px;
+  --ring: 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f6f7fb;
+    --panel: rgba(0, 0, 0, 0.04);
+    --panel-strong: rgba(0, 0, 0, 0.06);
+    --text: rgba(0, 0, 0, 0.9);
+    --muted: rgba(0, 0, 0, 0.65);
+    --border: rgba(0, 0, 0, 0.12);
+    --accent: #0369a1;
+    --accent2: #6d28d9;
+    --danger: #be123c;
+    --shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+    --ring: 0 0 0 1px rgba(0, 0, 0, 0.06);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  width: 100%;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(1200px 700px at 12% 8%, rgba(125, 211, 252, 0.16), transparent),
+    radial-gradient(1000px 700px at 75% 0%, rgba(167, 139, 250, 0.14), transparent),
+    radial-gradient(1200px 700px at 95% 30%, rgba(251, 113, 133, 0.12), transparent), var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+a {
+  color: var(--accent);
+}
+
+a:hover {
+  color: color-mix(in oklab, var(--accent) 80%, white);
+}
+
+.noise {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  opacity: 0.08;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+
+.appShell {
+  height: 100dvh;
+  min-height: 100dvh;
+  width: 100%;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: var(--ring);
+}
+
+.btn:hover {
+  background: var(--panel-strong);
+}
+
+.btnDanger {
+  border-color: color-mix(in oklab, var(--danger) 35%, var(--border));
+  color: var(--danger);
+}
+
+.workspace {
+  padding: 0;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.grid {
+  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  padding: 14px;
+  overflow: auto;
+}
+
+.tiledRoot {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.split {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  overflow: hidden;
+}
+
+.splitRow {
+  flex-direction: row;
+}
+
+.splitCol {
+  flex-direction: column;
+}
+
+.splitPane {
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+}
+
+.splitBar {
+  flex: 0 0 auto;
+  background: transparent;
+  position: relative;
+  z-index: 3;
+}
+
+.splitBarV {
+  width: var(--tile-gap);
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.splitBarH {
+  height: var(--tile-gap);
+  cursor: row-resize;
+  touch-action: none;
+}
+
+.splitBar::before {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--border) 70%, transparent);
+  opacity: 0;
+  transition: opacity 140ms ease, background 140ms ease;
+}
+
+.splitBar:hover::before {
+  opacity: 0.8;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.7), rgba(167, 139, 250, 0.6), rgba(251, 113, 133, 0.65));
+}
+
+.workspace[data-modal-open="true"] .splitBar {
+  pointer-events: none;
+}
+
+.workspace[data-modal-open="true"] .splitBar::before {
+  opacity: 0 !important;
+}
+
+.tiledLeaf {
+  width: 100%;
+  height: 100%;
+}
+
+.tile {
+  position: relative;
+  border-radius: 0;
+  overflow: clip;
+  background: linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--panel) 92%, transparent),
+      color-mix(in oklab, var(--panel) 70%, transparent)
+    ),
+    var(--panel);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tile::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(125, 211, 252, 0.25),
+    rgba(167, 139, 250, 0.18) 35%,
+    rgba(255, 255, 255, 0.08) 60%,
+    rgba(251, 113, 133, 0.22)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.tile[data-active="true"]::before {
+  opacity: 1;
+  background: linear-gradient(
+    135deg,
+    rgba(125, 211, 252, 0.75),
+    rgba(167, 139, 250, 0.55),
+    rgba(251, 113, 133, 0.6)
+  );
+}
+
+.tile:focus-within {
+  outline: none;
+}
+
+.tileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px 6px 10px;
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  background: rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(10px);
+}
+
+@media (prefers-color-scheme: light) {
+  .tileHeader {
+    background: rgba(255, 255, 255, 0.65);
+  }
+}
+
+.tileTitleWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tileTitle {
+  font-weight: 700;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tileMeta {
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.tileKindIcon {
+  display: inline-block;
+  width: 14px;
+  text-align: center;
+  opacity: 0.85;
+}
+
+.tileToolbar {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.iconBtn {
+  width: 30px;
+  height: 30px;
+  border-radius: 0;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 80%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  box-shadow: var(--ring);
+}
+
+.iconBtn:hover {
+  background: var(--panel-strong);
+}
+
+.iconBtnDanger {
+  border-color: color-mix(in oklab, var(--danger) 35%, var(--border));
+  color: var(--danger);
+}
+
+.tileBody {
+  padding: 10px 12px 12px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.tileMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--bg) 70%, black);
+  box-shadow: var(--shadow);
+  padding: 6px;
+  z-index: 10;
+}
+
+@media (prefers-color-scheme: light) {
+  .tileMenu {
+    background: white;
+  }
+}
+
+.tileMenuItem {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text);
+  padding: 8px 10px;
+  cursor: pointer;
+  font-weight: 650;
+  border-radius: 0;
+}
+
+.tileMenuItem:hover {
+  background: var(--panel-strong);
+  border-color: color-mix(in oklab, var(--accent) 20%, var(--border));
+}
+
+.tileMenuSep {
+  height: 1px;
+  margin: 6px 4px;
+  background: color-mix(in oklab, var(--border) 85%, transparent);
+}
+
+.tileMenuDanger {
+  color: var(--danger);
+}
+
+.mfmFnSpin,
+.mfmFnSpinX,
+.mfmFnSpinY {
+  display: inline-block;
+  animation: mfmSpin 1.2s linear infinite;
+}
+
+.mfmFnShake {
+  display: inline-block;
+  animation: mfmShake 0.24s linear infinite;
+}
+
+.mfmFnJump {
+  display: inline-block;
+  animation: mfmJump 0.65s ease-in-out infinite;
+}
+
+.mfmFnFlip {
+  display: inline-block;
+  animation: mfmFlip 0.9s ease-in-out infinite;
+  transform-style: preserve-3d;
+}
+
+.mfmFnTada {
+  display: inline-block;
+  animation: mfmTada 0.85s ease-in-out infinite;
+}
+
+.mfmFnRainbow {
+  display: inline-block;
+  animation: mfmRainbow 1.4s linear infinite;
+}
+
+.mfmFnBounce {
+  display: inline-block;
+  animation: mfmBounce 0.85s ease-in-out infinite;
+}
+
+.mfmFnTwitch {
+  display: inline-block;
+  animation: mfmTwitch 0.3s linear infinite;
+}
+
+.mfmFnJelly {
+  display: inline-block;
+  animation: mfmJelly 0.9s ease-in-out infinite;
+}
+
+.mfmFnSparkle {
+  display: inline-block;
+  position: relative;
+}
+
+.mfmFnSparkle::after {
+  content: "✦";
+  position: absolute;
+  top: -0.6em;
+  right: -0.6em;
+  font-size: 0.8em;
+  opacity: 0.0;
+  animation: mfmSparkle 1.2s ease-in-out infinite;
+  color: #facc15;
+  pointer-events: none;
+}
+
+.mfmFnBlur {
+  filter: blur(1.2px);
+}
+
+.mfmFnRotate {
+  display: inline-block;
+  transform: rotate(var(--mfm-rotate-deg, 0deg));
+}
+
+.mfmFnPosition {
+  display: inline-block;
+  transform: translate(calc(var(--mfm-pos-x, 0) * 0.6em), calc(var(--mfm-pos-y, 0) * 0.6em));
+}
+
+.mfmFnScale {
+  display: inline-block;
+  transform: scale(var(--mfm-scale-x, 1), var(--mfm-scale-y, 1));
+  transform-origin: center;
+}
+
+.mfmFnColor {
+  display: inline;
+}
+
+.mfmFnFont {
+  display: inline;
+}
+
+.mfmFnX2 {
+  font-size: 1.3em;
+}
+
+.mfmFnX3 {
+  font-size: 1.6em;
+}
+
+.mfmFnX4 {
+  font-size: 1.9em;
+}
+
+.mfmFnSmall {
+  font-size: 0.86em;
+}
+
+.mfmFnLarge {
+  font-size: 1.25em;
+}
+
+.mfmFnUnknown {
+  /* no-op */
+}
+
+@keyframes mfmSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.mfmFnSpinX {
+  animation-name: mfmSpinX;
+}
+
+.mfmFnSpinY {
+  animation-name: mfmSpinY;
+}
+
+@keyframes mfmSpinX {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(360deg);
+  }
+}
+
+@keyframes mfmSpinY {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes mfmShake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-1px);
+  }
+  50% {
+    transform: translateX(1px);
+  }
+  75% {
+    transform: translateX(-1px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes mfmJump {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes mfmBounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-6px);
+  }
+  60% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes mfmTwitch {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(1px, -1px);
+  }
+  50% {
+    transform: translate(-1px, 1px);
+  }
+  75% {
+    transform: translate(1px, 1px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes mfmJelly {
+  0%,
+  100% {
+    transform: scale(1, 1);
+  }
+  30% {
+    transform: scale(1.14, 0.92);
+  }
+  55% {
+    transform: scale(0.95, 1.08);
+  }
+}
+
+@keyframes mfmSparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  40% {
+    opacity: 0.95;
+    transform: translateY(-2px) scale(1.05);
+  }
+}
+
+@keyframes mfmFlip {
+  0% {
+    transform: rotateY(0deg);
+  }
+  50% {
+    transform: rotateY(180deg);
+  }
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes mfmTada {
+  0% {
+    transform: scale(1) rotate(0deg);
+  }
+  10%,
+  20% {
+    transform: scale(0.95) rotate(-2deg);
+  }
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: scale(1.05) rotate(2deg);
+  }
+  40%,
+  60%,
+  80% {
+    transform: scale(1.05) rotate(-2deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes mfmRainbow {
+  0% {
+    color: #ff6b6b;
+  }
+  16% {
+    color: #f59e0b;
+  }
+  33% {
+    color: #facc15;
+  }
+  50% {
+    color: #22c55e;
+  }
+  66% {
+    color: #38bdf8;
+  }
+  83% {
+    color: #a78bfa;
+  }
+  100% {
+    color: #ff6b6b;
+  }
+}
+
+.tileScroller {
+  height: 100%;
+  overflow: auto;
+}
+
+.tileResizer {
+  position: absolute;
+  top: 0;
+  width: 12px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+
+.tileResizerRight {
+  right: 0;
+}
+
+.tileResizerLeft {
+  left: 0;
+}
+
+.tileResizer::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--border) 70%, transparent);
+  opacity: 0.35;
+}
+
+.tileResizerBottom {
+  left: 0;
+  right: 0;
+  top: auto;
+  bottom: 0;
+  width: 100%;
+  height: 12px;
+  cursor: row-resize;
+}
+
+.tileResizerBottom::before {
+  top: 50%;
+  bottom: auto;
+  left: 12px;
+  right: 12px;
+  width: auto;
+  height: 2px;
+  transform: translateY(-50%);
+}
+
+.tile[data-active="true"] .tileResizer::before {
+  opacity: 0.75;
+  background: linear-gradient(180deg, rgba(125, 211, 252, 0.7), rgba(167, 139, 250, 0.6), rgba(251, 113, 133, 0.65));
+}
+
+.emptyState {
+  padding: 40px 16px;
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  margin: 14px;
+}
+
+.floatingBar {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translate(-50%, 6px);
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 10px 10px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.bottomReveal:hover + .floatingBar,
+.floatingBar:hover,
+.floatingBar:focus-within {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.bottomReveal {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 44px;
+  z-index: 4;
+}
+
+@media (prefers-color-scheme: light) {
+  .floatingBar {
+    background: rgba(255, 255, 255, 0.72);
+  }
+}
+
+.floatingTitle {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-right: 6px;
+}
+
+.floatingBrand {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  font-size: 13px;
+}
+
+.floatingSub {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.1;
+}
+
+.floatingActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.modal {
+  width: min(560px, 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--bg) 65%, black);
+  box-shadow: var(--shadow);
+  overflow: clip;
+}
+
+@media (prefers-color-scheme: light) {
+  .modal {
+    background: white;
+  }
+}
+
+.modalHeader {
+  padding: 12px 14px;
+  font-weight: 800;
+  border-bottom: 1px solid var(--border);
+}
+
+.modalBody {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.fieldRow {
+  display: grid;
+  gap: 6px;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.input,
+.select {
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 10px 12px;
+  outline: none;
+}
+
+textarea.input {
+  border-radius: 12px;
+}
+
+.input:focus,
+.select:focus {
+  border-color: color-mix(in oklab, var(--accent) 45%, var(--border));
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--border);
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+}
+
+.listRow {
+  display: grid;
+  grid-template-columns: 34px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.avatar {
+  width: 34px;
+  height: 34px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 78%, transparent);
+}
+
+.avatarFallback {
+  background: linear-gradient(135deg, rgba(125, 211, 252, 0.18), rgba(167, 139, 250, 0.14), rgba(251, 113, 133, 0.14));
+}
+
+.listItem {
+  padding: 10px 10px;
+  border-radius: 0;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel) 78%, transparent);
+}
+
+@media (prefers-color-scheme: light) {
+  .listItem {
+    background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+.listTitle {
+  font-weight: 800;
+  font-size: 13px;
+}
+
+.listMeta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.listRenoteMeta {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.renoteBox {
+  margin-top: 6px;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  background: color-mix(in oklab, var(--panel) 65%, transparent);
+  padding: 8px;
+}
