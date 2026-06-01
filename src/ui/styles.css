@@ -1054,6 +1054,22 @@ textarea.input {
   font-size: 14px;
 }
 
+.listTitleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.listHandleMuted {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .listMeta {
   margin-top: 4px;
   font-size: 15px;
