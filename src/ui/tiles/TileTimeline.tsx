@@ -137,7 +137,7 @@ export function TileTimeline(props: Props) {
       <VirtualList
         className="tileScroller"
         items={items}
-        estimateItemHeight={78}
+        estimateItemHeight={90}
         overscan={8}
         endThresholdPx={900}
         onNearEnd={loadMore}

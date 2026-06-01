@@ -1050,9 +1050,9 @@ textarea.input {
 
 .listMeta {
   margin-top: 4px;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--muted);
-  line-height: 1.35;
+  line-height: 1.45;
 }
 
 .cwLine {
