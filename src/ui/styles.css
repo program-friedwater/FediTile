@@ -939,6 +939,7 @@ a:hover {
 .fieldRow {
   display: grid;
   gap: 6px;
+  align-content: start;
 }
 
 .fieldRowTight {
