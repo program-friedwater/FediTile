@@ -3,7 +3,6 @@ import type { Post } from "../../domain/types";
 import type { TileQuery } from "./tileTypes";
 import { getMockTimelinePage } from "./mockData";
 import { VirtualList } from "./VirtualList";
-import { renderMfm } from "../mfm/renderMfm";
 import { loadAccounts, onAccountsChanged } from "../accounts/accountsStore";
 import { fetchTimeline } from "../misskey/api";
 import { startTimelineStream } from "../misskey/streaming";
@@ -17,30 +16,13 @@ import { Modal } from "../components/Modal";
 import { emitComposeIntent, postToReplyIntent } from "../state/composeBus";
 import { loadWorkspace } from "./workspaceStore";
 import { emitInspectIntent } from "../state/inspectBus";
+import { PostCard } from "../components/PostCard";
 
 type Props = {
   query: TileQuery;
 };
 
 const PAGE_SIZE = 40;
-
-function renderNameWithEmojis(name: string, emojiResolver: (shortcode: string) => string | null | undefined) {
-  const parts: React.ReactNode[] = [];
-  const re = /:([0-9A-Za-z_+-]+):/g;
-  let last = 0;
-  for (;;) {
-    const m = re.exec(name);
-    if (!m) break;
-    if (m.index > last) parts.push(name.slice(last, m.index));
-    const sc = m[1] ?? "";
-    const url = sc ? emojiResolver(sc) : null;
-    if (url) parts.push(<img key={`${m.index}:${sc}`} className="mfmEmoji" src={url} alt={`:${sc}:`} loading="lazy" decoding="async" />);
-    else parts.push(m[0]);
-    last = m.index + m[0].length;
-  }
-  if (last < name.length) parts.push(name.slice(last));
-  return parts;
-}
 
 export function TileTimeline(props: Props) {
   const queryKey = useMemo(() => JSON.stringify(props.query), [props.query]);
@@ -51,7 +33,7 @@ export function TileTimeline(props: Props) {
   const [accountsEpoch, setAccountsEpoch] = useState(0);
   const nextCursorRef = useRef<string | null>(null);
   const streamRef = useRef<{ close: () => void } | null>(null);
-  const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
+  const [renoteMenuPost, setRenoteMenuPost] = useState<Post | null>(null);
   const [modal, setModal] = useState<{ mode: "quote" | "reply" | null; post: Post | null }>({ mode: null, post: null });
   const [emojiOpenFor, setEmojiOpenFor] = useState<Post | null>(null);
   const [emojiList, setEmojiList] = useState<MisskeyEmoji[]>([]);
@@ -170,404 +152,130 @@ export function TileTimeline(props: Props) {
         endThresholdPx={900}
         onNearEnd={loadMore}
         renderItem={(p, idx) => (
-          <div
-            className="listItem"
-            key={`${p.createdAt}-${idx}`}
-            onClick={() => {
-              emitInspectIntent({ type: "post", post: p });
+          <PostCard
+            post={p}
+            emojiList={emojiList}
+            cwOpen={cwOpen}
+            cwKey={(p.uri ?? (p.remoteId as any as string) ?? `${p.createdAt}-${idx}`) as string}
+            onToggleCw={(key) => setCwOpen((m) => ({ ...m, [key]: !(m[key] === true) }))}
+            onInspectPost={(post) => emitInspectIntent({ type: "post", post })}
+            onInspectAuthor={(post) => emitInspectIntent({ type: "author", author: post.author })}
+            onOpenLightbox={(items, index) => setLightbox({ items, index })}
+            onReply={async (post) => {
+              try {
+                const ws = loadWorkspace();
+                const hasCompose = !!ws?.tiles?.some((t) => t.query?.kind === "compose");
+                if (hasCompose) {
+                  const intent = postToReplyIntent(post);
+                  if (intent) emitComposeIntent(intent);
+                  return;
+                }
+              } catch {
+                // ignore
+              }
+              setModal({ mode: "reply", post });
             }}
-            style={{ cursor: "pointer" }}
-            title="Inspect post"
-          >
-            <div className="listRow">
-            {p.author.avatarUrl ? (
-              <img
-                className="avatar"
-                src={p.author.avatarUrl}
-                alt=""
-                loading="lazy"
-                decoding="async"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  emitInspectIntent({ type: "author", author: p.author });
-                }}
-                style={{ cursor: "pointer" }}
-                title="Inspect user"
-              />
-            ) : (
-              <div className="avatar avatarFallback" aria-hidden="true" />
-            )}
-            <div style={{ minWidth: 0 }}>
-              <div
-                className="listTitleRow"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  emitInspectIntent({ type: "author", author: p.author });
-                }}
-                style={{ cursor: "pointer" }}
-                title="Inspect user"
-              >
-                <span className="listTitle">
-                  {renderNameWithEmojis(
-                    p.author.displayName ?? p.author.handle,
-                    buildEmojiResolver({ emojis: p.customEmojis, global: emojiList }),
-                  )}
-                </span>
-                <span className="listHandleMuted">{p.author.handle}</span>
-              </div>
-              {(() => {
-                const key = (p.uri ?? (p.remoteId as any as string) ?? `${p.createdAt}-${idx}`) as string;
-                const open = cwOpen[key] === true;
-                const hasCw = !!p.cw;
-                const toggle = () => setCwOpen((m) => ({ ...m, [key]: !open }));
-
-                const renderMedia = (post: Post) => {
-                  if (!post.media || post.media.length === 0) return null;
-                  const imageItems: LightboxItem[] = post.media
-                    .filter((m) => m.type === "image" && m.url)
-                    .map((m) => ({ url: m.url!, alt: m.description ?? "" }));
-                  return (
-                    <div className="mediaGrid">
-                      {post.media
-                        .filter((m) => m.url)
-                        .slice(0, 6)
-                        .map((m, mi) => {
-                          if (m.type === "image" && imageItems.length > 0) {
-                            const idx2 = imageItems.findIndex((x) => x.url === m.url);
-                            return (
-                              <button
-                                key={mi}
-                                type="button"
-                                className="mediaItem mediaButton"
-                                onClick={() => {
-                                  const index = idx2 >= 0 ? idx2 : 0;
-                                  setLightbox({ items: imageItems, index });
-                                }}
-                                aria-label="Open image"
-                              >
-                                <img
-                                  className="mediaThumb"
-                                  src={m.previewUrl ?? m.url}
-                                  alt={m.description ?? ""}
-                                  loading="lazy"
-                                  decoding="async"
-                                  style={m.width && m.height ? ({ aspectRatio: `${m.width} / ${m.height}` } as any) : undefined}
-                                />
-                              </button>
-                            );
-                          }
-
-                          return (
-                            <a key={mi} href={m.url} target="_blank" rel="noreferrer noopener" className="mediaItem">
-                              {m.type === "video" ? (
-                                <div className="mediaVideo">
-                                  {m.previewUrl ? (
-                                    <img
-                                      className="mediaThumb"
-                                      src={m.previewUrl}
-                                      alt=""
-                                      loading="lazy"
-                                      decoding="async"
-                                      style={m.width && m.height ? ({ aspectRatio: `${m.width} / ${m.height}` } as any) : undefined}
-                                    />
-                                  ) : null}
-                                  <div className="mediaBadge">VIDEO</div>
-                                </div>
-                              ) : (
-                                <div className="mediaBadge">FILE</div>
-                              )}
-                            </a>
-                          );
-                        })}
-                    </div>
-                  );
-                };
-
-                const renderBody = (post: Post) => (
-                  <>
-                    {post.replyTo ? (
-                      <div className="replyBox" aria-label="Replying to">
-                        <div className="replyHeader">
-                          <span className="replyToLabel">Replying to</span>
-                          <span className="replyToHandle">{post.replyTo.author.handle}</span>
-                        </div>
-                        <div className="replySnippet">
-                          {post.replyTo.contentFormat === "mfm"
-                            ? renderMfm(post.replyTo.content, { emojiResolver: buildEmojiResolver({ emojis: post.replyTo.customEmojis, global: emojiList }) })
-                            : post.replyTo.content}
-                        </div>
-                      </div>
-                    ) : null}
-                    <div className="listMeta">
-                      {post.contentFormat === "mfm"
-                        ? renderMfm(post.content, { emojiResolver: buildEmojiResolver({ emojis: post.customEmojis, global: emojiList }) })
-                        : post.content}
-                    </div>
-                    {renderMedia(post)}
-                  </>
+            onRenoteMenu={(post) => setRenoteMenuPost(post)}
+            onReact={async (post) => {
+              if (mode !== "misskey") return;
+              try {
+                const accounts = await loadAccounts();
+                const account = accounts.misskey[0];
+                if (!account) throw new Error("No Misskey account connected");
+                const emojis = await getEmojis(account);
+                setEmojiList(emojis);
+              } catch {
+                setEmojiList([]);
+              } finally {
+                setEmojiOpenFor(post);
+              }
+            }}
+            onToggleReaction={async (post, reactionKey) => {
+              if (mode !== "misskey") return;
+              const noteId = (post.remoteId as any as string | undefined) ?? "";
+              if (!noteId) return;
+              const accounts = await loadAccounts();
+              const account = accounts.misskey[0];
+              if (!account) return;
+              // Ensure we have myReaction/reactions for older notes.
+              let current = post;
+              if (!current.myReaction || !Array.isArray(current.reactions)) {
+                try {
+                  const fresh = await showNote(account, { noteId });
+                  setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? { ...x, ...fresh } : x)));
+                  current = fresh;
+                } catch {
+                  // ignore
+                }
+              }
+              const already = current.myReaction === reactionKey;
+              try {
+                setItems((prev) =>
+                  prev.map((x) => {
+                    if ((x.remoteId as any) !== noteId) return x;
+                    const reactions = (x.reactions ?? []).map((rr) =>
+                      rr.key === reactionKey ? { ...rr, count: Math.max(0, rr.count + (already ? -1 : 1)) } : rr,
+                    );
+                    return { ...x, reactions, myReaction: already ? undefined : reactionKey };
+                  }),
                 );
-
-                if (p.repostOf) {
-                  return (
-                    <>
-                      {hasCw ? (
-                        <div className="cwLine">
-                          <span className="cwText">{p.cw}</span>
-                          <button type="button" className="cwBtn" onClick={toggle}>
-                            {open ? "Hide" : "View"}
-                          </button>
-                        </div>
-                      ) : null}
-                      {open || !hasCw ? (p.content?.trim() ? renderBody(p) : null) : null}
-
-                      <div className="listMeta listRenoteMeta">{p.content?.trim() ? "" : "Renoted"}</div>
-                      <div className="renoteBox">
-                        <div className="listRow">
-                          {p.repostOf.author.avatarUrl ? (
-                            <img className="avatar" src={p.repostOf.author.avatarUrl} alt="" loading="lazy" decoding="async" />
-                          ) : (
-                            <div className="avatar avatarFallback" aria-hidden="true" />
-                          )}
-                          <div style={{ minWidth: 0 }}>
-                            <div className="listTitleRow">
-                              <span className="listTitle">
-                                {renderNameWithEmojis(
-                                  p.repostOf.author.displayName ?? p.repostOf.author.handle,
-                                  buildEmojiResolver({ emojis: p.repostOf.customEmojis, global: emojiList }),
-                                )}
-                              </span>
-                              <span className="listHandleMuted">{p.repostOf.author.handle}</span>
-                            </div>
-                            {p.repostOf.cw ? (
-                              <div className="cwLine">
-                                <span className="cwText">{p.repostOf.cw}</span>
-                                <button
-                                  type="button"
-                                  className="cwBtn"
-                                  onClick={() => {
-                                    const k2 = `${key}:repost`;
-                                    const open2 = cwOpen[k2] === true;
-                                    setCwOpen((m) => ({ ...m, [k2]: !open2 }));
-                                  }}
-                                >
-                                  {cwOpen[`${key}:repost`] ? "Hide" : "View"}
-                                </button>
-                              </div>
-                            ) : null}
-                            {(p.repostOf.cw ? cwOpen[`${key}:repost`] : true) ? renderBody(p.repostOf) : null}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
+                if (already) await unreactToNote(account, { noteId });
+                else await reactToNote(account, { noteId, reaction: reactionKey });
+              } catch {
+                try {
+                  const fresh = await showNote(account, { noteId });
+                  setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? fresh : x)));
+                } catch {
+                  // ignore
                 }
-
-                if (hasCw) {
-                  return (
-                    <>
-                      <div className="cwLine">
-                        <span className="cwText">{p.cw}</span>
-                        <button type="button" className="cwBtn" onClick={toggle}>
-                          {open ? "Hide" : "View"}
-                        </button>
-                      </div>
-                      {open ? renderBody(p) : null}
-                    </>
-                  );
-                }
-
-                return renderBody(p);
-              })()}
-
-              <div className="postActions">
-                <button
-                  className="postIconBtn"
-                  title="Reply"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    try {
-                      const ws = loadWorkspace();
-                      const hasCompose = !!ws?.tiles?.some((t) => t.query?.kind === "compose");
-                      if (hasCompose) {
-                        const intent = postToReplyIntent(p);
-                        if (intent) emitComposeIntent(intent);
-                        return;
-                      }
-                    } catch {
-                      // ignore
-                    }
-                    setModal({ mode: "reply", post: p });
-                  }}
-                >
-                  <span className="postIconSvg" aria-hidden="true">
-                    <ReplyIcon />
-                  </span>
-                </button>
-
-                <button
-                  className="postIconBtn"
-                  title="Renote"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActionMenuFor((p.remoteId as any as string) ?? null);
-                  }}
-                >
-                  <span className="postIconSvg" aria-hidden="true">
-                    <RepeatIcon />
-                  </span>
-                </button>
-
-                <button
-                  className="postIconBtn"
-                  title="React"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if (mode !== "misskey") return;
-                    try {
-                      const accounts = await loadAccounts();
-                      const account = accounts.misskey[0];
-                      if (!account) throw new Error("No Misskey account connected");
-                      const emojis = await getEmojis(account);
-                      setEmojiList(emojis);
-                    } catch {
-                      setEmojiList([]);
-                    } finally {
-                      setEmojiOpenFor(p);
-                    }
-                  }}
-                >
-                  <span className="postIconSvg" aria-hidden="true">
-                    <SmileIcon />
-                  </span>
-                </button>
-              </div>
-
-              {Array.isArray(p.reactions) && p.reactions.length > 0 ? (
-                <div className="reactionBar" aria-label="Reactions">
-                  {p.reactions.slice(0, 8).map((r) => (
-                    <button
-                      type="button"
-                      className={["reactionPill", p.myReaction === r.key ? "reactionPillActive" : ""].filter(Boolean).join(" ")}
-                      key={r.key}
-                      title="Toggle reaction"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (mode !== "misskey") return;
-                        const noteId = (p.remoteId as any as string | undefined) ?? "";
-                        if (!noteId) return;
-                        const accounts = await loadAccounts();
-                        const account = accounts.misskey[0];
-                        if (!account) return;
-
-                        // Ensure we have myReaction/reactions for older notes.
-                        let current = p;
-                        if (!current.myReaction || !Array.isArray(current.reactions)) {
-                          try {
-                            const fresh = await showNote(account, { noteId });
-                            setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? { ...x, ...fresh } : x)));
-                            current = fresh;
-                          } catch {
-                            // ignore
-                          }
-                        }
-
-                        const already = current.myReaction === r.key;
-                        try {
-                          // optimistic UI
-                          setItems((prev) =>
-                            prev.map((x) => {
-                              if ((x.remoteId as any) !== noteId) return x;
-                              const reactions = (x.reactions ?? []).map((rr) =>
-                                rr.key === r.key ? { ...rr, count: Math.max(0, rr.count + (already ? -1 : 1)) } : rr,
-                              );
-                              const myReaction = already ? undefined : r.key;
-                              return { ...x, reactions, myReaction };
-                            }),
-                          );
-
-                          if (already) await unreactToNote(account, { noteId });
-                          else await reactToNote(account, { noteId, reaction: r.key });
-                        } catch {
-                          // revert by refetch
-                          try {
-                            const fresh = await showNote(account, { noteId });
-                            setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? fresh : x)));
-                          } catch {
-                            // ignore
-                          }
-                        }
-                      }}
-                    >
-                      {(() => {
-                        const resolver = buildEmojiResolver({ emojis: p.customEmojis, global: emojiList });
-                        const key = r.key;
-                        if (key.startsWith(":") && key.endsWith(":")) {
-                          const name = key.slice(1, -1);
-                          const url = resolver(name);
-                          return (
-                            <>
-                              {url ? <img src={url} alt={key} loading="lazy" decoding="async" /> : key}
-                            </>
-                          );
-                        }
-                        return (
-                          <>
-                            {key}
-                          </>
-                        );
-                      })()}{" "}
-                      {r.count}
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-
-              {actionMenuFor && actionMenuFor === (p.remoteId as any as string | null) ? (
-                <div className="tileMenu" role="menu" style={{ position: "relative", marginTop: 8, right: "auto" as any }}>
-                  <button
-                    className="tileMenuItem"
-                    role="menuitem"
-                    onClick={async () => {
-                      setActionMenuFor(null);
-                      if (mode !== "misskey") return;
-                      const noteId = ((p.repostOf?.remoteId ?? p.remoteId) as any as string | undefined) ?? "";
-                      if (!noteId) return;
-                      const accounts = await loadAccounts();
-                      const account = accounts.misskey[0];
-                      if (!account) return;
-                      try {
-                        const created = await createNote(account, { renoteId: noteId, visibility: "public" });
-                        setItems((prev) => {
-                          const key = created.uri ?? created.remoteId;
-                          if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
-                          return [created, ...prev].slice(0, 500);
-                        });
-                      } catch (e) {
-                        setErrorText(e instanceof Error ? e.message : String(e));
-                      }
-                    }}
-                  >
-                    Renote
-                  </button>
-                  <button
-                    className="tileMenuItem"
-                    role="menuitem"
-                    onClick={() => {
-                      setActionMenuFor(null);
-                      setModal({ mode: "quote", post: p });
-                    }}
-                  >
-                    Quote…
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
-      )}
-    />
+              }
+            }}
+          />
+        )}
+      />
 
       <PostActionModal mode={modal.mode} post={modal.post} onClose={() => setModal({ mode: null, post: null })} />
+
+      <Modal isOpen={!!renoteMenuPost} title="Renote" onClose={() => setRenoteMenuPost(null)}>
+        <div style={{ display: "grid", gap: 10 }}>
+          <button
+            className="btn"
+            onClick={async () => {
+              const p = renoteMenuPost;
+              setRenoteMenuPost(null);
+              if (!p || mode !== "misskey") return;
+              const noteId = ((p.repostOf?.remoteId ?? p.remoteId) as any as string | undefined) ?? "";
+              if (!noteId) return;
+              const accounts = await loadAccounts();
+              const account = accounts.misskey[0];
+              if (!account) return;
+              try {
+                const created = await createNote(account, { renoteId: noteId, visibility: "public" });
+                setItems((prev) => {
+                  const key = created.uri ?? created.remoteId;
+                  if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
+                  return [created, ...prev].slice(0, 500);
+                });
+              } catch (e) {
+                setErrorText(e instanceof Error ? e.message : String(e));
+              }
+            }}
+          >
+            Renote
+          </button>
+          <button
+            className="btn"
+            onClick={() => {
+              const p = renoteMenuPost;
+              setRenoteMenuPost(null);
+              if (!p) return;
+              setModal({ mode: "quote", post: p });
+            }}
+          >
+            Quote…
+          </button>
+        </div>
+      </Modal>
 
       <EmojiPickerModal
         isOpen={!!emojiOpenFor}

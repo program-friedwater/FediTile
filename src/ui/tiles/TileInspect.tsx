@@ -10,6 +10,7 @@ import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNot
 import { EmojiPickerModal } from "./EmojiPickerModal";
 import { PostActionModal } from "./PostActionModal";
 import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons";
+import { PostCard } from "../components/PostCard";
 
 type ViewState =
   | { kind: "empty" }
@@ -123,133 +124,36 @@ export function TileInspect() {
 
       {state.kind === "post" ? (
         <div className="inspectCard">
-          <div className="listTitleRow">
-            <span className="listTitle">{state.post.author.displayName ?? state.post.author.handle}</span>
-            <span className="listHandleMuted">{state.post.author.handle}</span>
-          </div>
-          <div className="listMeta">{new Date(state.post.createdAt).toLocaleString()}</div>
-          {state.post.cw ? (
-            <div className="cwLine">
-              <span className="cwText">{state.post.cw}</span>
-            </div>
-          ) : null}
-
-          <div className="postActions">
-            <button
-              className="postIconBtn"
-              title="Reply"
-              onClick={(e) => {
-                e.stopPropagation();
-                setModal({ mode: "reply", post: state.post });
-              }}
-            >
-              <span className="postIconSvg" aria-hidden="true">
-                <ReplyIcon />
-              </span>
-            </button>
-            <button
-              className="postIconBtn"
-              title="Renote"
-              onClick={(e) => {
-                e.stopPropagation();
-                setActionMenuFor((state.post.remoteId as any as string) ?? null);
-              }}
-            >
-              <span className="postIconSvg" aria-hidden="true">
-                <RepeatIcon />
-              </span>
-            </button>
-            <button
-              className="postIconBtn"
-              title="React"
-              onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  const accounts = await loadAccounts();
-                  const account = accounts.misskey[0];
-                  if (!account) throw new Error("No Misskey account connected");
-                  const emojis = await getEmojis(account);
-                  setGlobalEmojis(emojis);
-                } catch {
-                  // ignore
-                } finally {
-                  setEmojiOpenFor(state.post);
-                }
-              }}
-            >
-              <span className="postIconSvg" aria-hidden="true">
-                <SmileIcon />
-              </span>
-            </button>
-          </div>
-
-          {Array.isArray(state.post.reactions) && state.post.reactions.length > 0 ? (
-            <div className="reactionBar" aria-label="Reactions">
-              {state.post.reactions.slice(0, 12).map((r) => (
-                <button
-                  type="button"
-                  className={["reactionPill", state.post.myReaction === r.key ? "reactionPillActive" : ""].filter(Boolean).join(" ")}
-                  key={r.key}
-                  title="Toggle reaction"
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const noteId = (state.post.remoteId as any as string | undefined) ?? "";
-                    if (!noteId) return;
-                    const accounts = await loadAccounts();
-                    const account = accounts.misskey[0];
-                    if (!account) return;
-                    const already = state.post.myReaction === r.key;
-                    try {
-                      // optimistic update
-                      setState((prev) => {
-                        if (prev.kind !== "post") return prev;
-                        const reactions = (prev.post.reactions ?? []).map((rr) =>
-                          rr.key === r.key ? { ...rr, count: Math.max(0, rr.count + (already ? -1 : 1)) } : rr,
-                        );
-                        return { ...prev, post: { ...prev.post, reactions, myReaction: already ? undefined : r.key }, loadedAt: nowIso() };
-                      });
-                      if (already) await unreactToNote(account, { noteId });
-                      else await reactToNote(account, { noteId, reaction: r.key });
-                      const fresh = await showNote(account, { noteId });
-                      setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
-                    } catch {
-                      try {
-                        const fresh = await showNote(account, { noteId });
-                        setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
-                      } catch {
-                        // ignore
-                      }
-                    }
-                  }}
-                >
-                  {(() => {
-                    const key = r.key;
-                    if (key.startsWith(":") && key.endsWith(":")) {
-                      const name = key.slice(1, -1);
-                      const url = resolver(name);
-                      return <>{url ? <img src={url} alt={key} loading="lazy" decoding="async" /> : key}</>;
-                    }
-                    return <>{key}</>;
-                  })()}{" "}
-                  {r.count}
-                </button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="listMeta">
-            {state.post.contentFormat === "mfm" ? renderMfm(state.post.content, { emojiResolver: resolver }) : state.post.content}
-          </div>
-          {state.post.url ? (
-            <div className="listMeta">
-              <a href={state.post.url} target="_blank" rel="noreferrer noopener">
-                Open in browser
-              </a>
-            </div>
-          ) : null}
+          <PostCard
+            post={state.post}
+            emojiList={globalEmojis}
+            cwOpen={{}}
+            cwKey={String(state.post.remoteId ?? state.post.uri ?? "inspect")}
+            onToggleCw={() => {}}
+            onReply={(p) => setModal({ mode: "reply", post: p })}
+            onRenoteMenu={(p) => setActionMenuFor((p.remoteId as any as string) ?? null)}
+            onReact={async (p) => setEmojiOpenFor(p)}
+            onToggleReaction={async (post, reactionKey) => {
+              const noteId = (post.remoteId as any as string | undefined) ?? "";
+              if (!noteId) return;
+              const accounts = await loadAccounts();
+              const account = accounts.misskey[0];
+              if (!account) return;
+              const already = post.myReaction === reactionKey;
+              try {
+                if (already) await unreactToNote(account, { noteId });
+                else await reactToNote(account, { noteId, reaction: reactionKey });
+                const fresh = await showNote(account, { noteId });
+                setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
+              } catch (e) {
+                setErrorText(e instanceof Error ? e.message : String(e));
+              }
+            }}
+            hideActions={false}
+          />
 
           {actionMenuFor && actionMenuFor === ((state.post.remoteId as any as string | null) ?? null) ? (
-            <div className="tileMenu" role="menu" style={{ position: "relative", marginTop: 8, right: "auto" as any }}>
+            <div className="tileMenu tileMenuInline" role="menu">
               <button
                 className="tileMenuItem"
                 role="menuitem"
@@ -286,17 +190,15 @@ export function TileInspect() {
             <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
               <div style={{ fontWeight: 900 }}>Replies</div>
               {state.replies.slice(0, 40).map((rp) => (
-                <div key={String(rp.remoteId ?? rp.uri ?? rp.createdAt)} className="inspectReply">
-                  <div className="listTitleRow">
-                    <span className="listTitle">{rp.author.displayName ?? rp.author.handle}</span>
-                    <span className="listHandleMuted">{rp.author.handle}</span>
-                  </div>
-                  <div className="listMeta">
-                    {rp.contentFormat === "mfm"
-                      ? renderMfm(rp.content, { emojiResolver: buildEmojiResolver({ emojis: rp.customEmojis, global: globalEmojis }) })
-                      : rp.content}
-                  </div>
-                </div>
+                <PostCard
+                  key={String(rp.remoteId ?? rp.uri ?? rp.createdAt)}
+                  post={rp}
+                  emojiList={globalEmojis}
+                  cwOpen={{}}
+                  cwKey={String(rp.remoteId ?? rp.uri ?? rp.createdAt)}
+                  onToggleCw={() => {}}
+                  hideActions={true}
+                />
               ))}
             </div>
           ) : null}
