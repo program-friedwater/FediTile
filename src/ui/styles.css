@@ -1264,8 +1264,8 @@ textarea.input {
 
 .renoteBox {
   margin-top: 6px;
-  border: none;
-  background: transparent;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
 }
 
