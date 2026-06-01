@@ -19,6 +19,21 @@ export type AccountsState = {
 };
 
 const KEY = "accounts.v1";
+const ACCOUNTS_CHANGED_EVENT = "feditile:accounts-changed";
+
+export function onAccountsChanged(cb: () => void): () => void {
+  const handler = () => cb();
+  window.addEventListener(ACCOUNTS_CHANGED_EVENT, handler as EventListener);
+  return () => window.removeEventListener(ACCOUNTS_CHANGED_EVENT, handler as EventListener);
+}
+
+function emitAccountsChanged() {
+  try {
+    window.dispatchEvent(new Event(ACCOUNTS_CHANGED_EVENT));
+  } catch {
+    // ignore
+  }
+}
 
 export async function loadAccounts(): Promise<AccountsState> {
   const v = await idbGet<AccountsState>(KEY);
@@ -28,6 +43,7 @@ export async function loadAccounts(): Promise<AccountsState> {
 
 export async function saveAccounts(next: AccountsState): Promise<void> {
   await idbSet(KEY, next);
+  emitAccountsChanged();
 }
 
 export async function upsertMisskeyAccount(account: MisskeyAccount): Promise<AccountsState> {

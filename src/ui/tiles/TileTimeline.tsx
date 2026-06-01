@@ -4,7 +4,7 @@ import type { TileQuery } from "./tileTypes";
 import { getMockTimelinePage } from "./mockData";
 import { VirtualList } from "./VirtualList";
 import { renderMfm } from "../mfm/renderMfm";
-import { loadAccounts } from "../accounts/accountsStore";
+import { loadAccounts, onAccountsChanged } from "../accounts/accountsStore";
 import { fetchTimeline } from "../misskey/api";
 import { startTimelineStream } from "../misskey/streaming";
 import { reactToNote, createNote, showNote, unreactToNote } from "../misskey/api";
@@ -26,6 +26,7 @@ export function TileTimeline(props: Props) {
   const [loaded, setLoaded] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState<"mock" | "misskey">("mock");
+  const [accountsEpoch, setAccountsEpoch] = useState(0);
   const nextCursorRef = useRef<string | null>(null);
   const streamRef = useRef<{ close: () => void } | null>(null);
   const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
@@ -34,6 +35,10 @@ export function TileTimeline(props: Props) {
   const [emojiList, setEmojiList] = useState<MisskeyEmoji[]>([]);
   const [cwOpen, setCwOpen] = useState<Record<string, boolean>>({});
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
+
+  useEffect(() => {
+    return onAccountsChanged(() => setAccountsEpoch((n) => n + 1));
+  }, []);
 
   useEffect(() => {
     let canceled = false;
@@ -96,7 +101,7 @@ export function TileTimeline(props: Props) {
       streamRef.current?.close();
       streamRef.current = null;
     };
-  }, [queryKey, props.query]);
+  }, [queryKey, props.query, accountsEpoch]);
 
   const loadMore = () => {
     if (loading) return;
