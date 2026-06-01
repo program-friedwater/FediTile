@@ -30,6 +30,9 @@ function normalizeNote(account: MisskeyAccount, note: MisskeyNote): Post {
   const cw = (note?.cw as string | null | undefined) ?? undefined;
   const renote = note?.renote as MisskeyNote | undefined;
   const renotePost = renote ? normalizeNote(account, renote) : undefined;
+  const emojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
+  const files = Array.isArray(note?.files) ? note.files : [];
+  const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
 
   return {
     serviceId: "misskey",
@@ -46,10 +49,24 @@ function normalizeNote(account: MisskeyAccount, note: MisskeyNote): Post {
     contentFormat: "mfm",
     content: text || (renotePost ? "" : ""),
     cw,
+    media:
+      files.length > 0
+        ? files.map((f: any) => ({
+            type:
+              f?.type?.startsWith("image/") ? "image" : f?.type?.startsWith("video/") ? "video" : f?.type?.startsWith("audio/") ? "audio" : "unknown",
+            url: String(f?.url ?? ""),
+            previewUrl: f?.thumbnailUrl ? String(f.thumbnailUrl) : undefined,
+            description: f?.comment ? String(f.comment) : undefined,
+            width: typeof f?.properties?.width === "number" ? f.properties.width : undefined,
+            height: typeof f?.properties?.height === "number" ? f.properties.height : undefined,
+          }))
+        : undefined,
     tags: Array.isArray(note?.tags) ? note.tags : undefined,
     reactions: note?.reactions
       ? Object.entries(note.reactions).map(([key, count]) => ({ key, count: Number(count) || 0 }))
       : undefined,
+    myReaction: myReaction ?? undefined,
+    customEmojis: emojis,
     repostOfUri: renotePost?.uri,
     repostOf: renotePost,
     url: noteUri(account, note),
@@ -107,13 +124,34 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
 
 export async function createNote(
   account: MisskeyAccount,
-  args: { text: string; cw?: string; visibility?: "public" | "home" | "followers" | "specified" },
+  args: {
+    text: string;
+    cw?: string;
+    visibility?: "public" | "home" | "followers" | "specified";
+    replyId?: string;
+    renoteId?: string;
+  },
 ): Promise<Post> {
   const body: Record<string, unknown> = { text: args.text };
   if (args.cw) body.cw = args.cw;
   if (args.visibility) body.visibility = args.visibility;
+  if (args.replyId) body.replyId = args.replyId;
+  if (args.renoteId) body.renoteId = args.renoteId;
   const note = await postJson<MisskeyNote>(account, "notes/create", body);
   // Some instances respond with { createdNote: {...} }
   const created = (note as any)?.createdNote ?? note;
   return normalizeNote(account, created);
+}
+
+export async function reactToNote(account: MisskeyAccount, args: { noteId: string; reaction: string }): Promise<void> {
+  await postJson(account, "notes/reactions/create", { noteId: args.noteId, reaction: args.reaction });
+}
+
+export async function unreactToNote(account: MisskeyAccount, args: { noteId: string }): Promise<void> {
+  await postJson(account, "notes/reactions/delete", { noteId: args.noteId });
+}
+
+export async function showNote(account: MisskeyAccount, args: { noteId: string }): Promise<Post> {
+  const note = await postJson<MisskeyNote>(account, "notes/show", { noteId: args.noteId });
+  return normalizeNote(account, note);
 }

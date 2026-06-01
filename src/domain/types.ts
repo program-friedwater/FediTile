@@ -91,6 +91,8 @@ export type Post = {
   };
 
   reactions?: Array<{ key: string; count: number; reacted?: boolean }>;
+  myReaction?: string;
+  customEmojis?: Record<string, string>;
 
   url?: string;
 };

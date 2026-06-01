@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import type { Tile, TileQuery, TileSize } from "./tileTypes";
 import { tileKindLabel } from "./tileTypes";
+import { Modal } from "../components/Modal";
+import { Button } from "../components/Button";
+import { FieldRow, Input, Label, Select } from "../components/Field";
+import { Pill } from "../components/Pill";
 
 type Props = {
   isOpen: boolean;
@@ -50,21 +54,27 @@ export function EditTileModal(props: Props) {
   if (!props.isOpen || !tile) return null;
 
   return (
-    <div
-      className="modalBackdrop"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Edit tile"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) props.onClose();
-      }}
+    <Modal
+      isOpen={props.isOpen}
+      title="Edit tile"
+      onClose={props.onClose}
+      footer={
+        <>
+          <Button onClick={props.onClose}>Cancel</Button>
+          <Button
+            onClick={() => {
+              props.onSave({ title: effectiveTitle, query, size });
+              props.onClose();
+            }}
+          >
+            Save
+          </Button>
+        </>
+      }
     >
-      <div className="modal">
-        <div className="modalHeader">Edit tile</div>
-        <div className="modalBody">
-          <div className="fieldRow">
-            <div className="label">Kind</div>
-            <select className="select" value={kind} onChange={(e) => setKind(e.target.value as TileQuery["kind"])}>
+      <FieldRow>
+        <Label>Kind</Label>
+        <Select value={kind} onChange={(e) => setKind(e.target.value as TileQuery["kind"])}>
               <option value="home">Home</option>
               <option value="local">Local</option>
               <option value="federated">Federated</option>
@@ -72,55 +82,38 @@ export function EditTileModal(props: Props) {
               <option value="compose">Compose</option>
               <option value="hashtag">Hashtag</option>
               <option value="search">Search</option>
-            </select>
-          </div>
+        </Select>
+      </FieldRow>
 
-          {kind === "hashtag" ? (
-            <div className="fieldRow">
-              <div className="label">Hashtag</div>
-              <input className="input" value={tag} onChange={(e) => setTag(e.target.value)} placeholder="news" />
-            </div>
-          ) : null}
+      {kind === "hashtag" ? (
+        <FieldRow>
+          <Label>Hashtag</Label>
+          <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="news" />
+        </FieldRow>
+      ) : null}
 
-          {kind === "search" ? (
-            <div className="fieldRow">
-              <div className="label">Query</div>
-              <input className="input" value={q} onChange={(e) => setQ(e.target.value)} placeholder="feditile" />
-            </div>
-          ) : null}
+      {kind === "search" ? (
+        <FieldRow>
+          <Label>Query</Label>
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="feditile" />
+        </FieldRow>
+      ) : null}
 
-          <div className="fieldRow">
-            <div className="label">Title</div>
-            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={effectiveTitle} />
-          </div>
+      <FieldRow>
+        <Label>Title</Label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={effectiveTitle} />
+      </FieldRow>
 
-          <div className="fieldRow">
-            <div className="label">Size</div>
-            <select className="select" value={size} onChange={(e) => setSize(e.target.value as TileSize)}>
-              <option value="s">Small</option>
-              <option value="m">Medium</option>
-              <option value="l">Large</option>
-            </select>
-          </div>
+      <FieldRow>
+        <Label>Size</Label>
+        <Select value={size} onChange={(e) => setSize(e.target.value as TileSize)}>
+          <option value="s">Small</option>
+          <option value="m">Medium</option>
+          <option value="l">Large</option>
+        </Select>
+      </FieldRow>
 
-          <div className="pill">Query preview: {JSON.stringify(query)}</div>
-        </div>
-        <div className="modalFooter">
-          <button className="btn" onClick={props.onClose}>
-            Cancel
-          </button>
-          <button
-            className="btn"
-            onClick={() => {
-              props.onSave({ title: effectiveTitle, query, size });
-              props.onClose();
-            }}
-          >
-            Save
-          </button>
-        </div>
-      </div>
-    </div>
+      <Pill>Query preview: {JSON.stringify(query)}</Pill>
+    </Modal>
   );
 }
-

@@ -58,23 +58,4 @@ export function tileKindLabel(kind: TimelineKind | TileQuery["kind"]): string {
   }
 }
 
-export function tileKindIcon(kind: TileQuery["kind"]): string {
-  switch (kind) {
-    case "home":
-      return "⌂";
-    case "local":
-      return "⌁";
-    case "federated":
-      return "◎";
-    case "notifications":
-      return "🔔";
-    case "hashtag":
-      return "#";
-    case "search":
-      return "⌕";
-    case "compose":
-      return "✎";
-    default:
-      return "◻";
-  }
-}
+// (icons removed; keep UI minimal)

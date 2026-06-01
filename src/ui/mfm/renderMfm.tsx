@@ -11,7 +11,9 @@ type Span =
   | { t: "mention"; handle: string }
   | { t: "hashtag"; tag: string }
   | { t: "url"; href: string }
-  | { t: "fn"; name: string; flags: string[]; params: Record<string, string>; c: Span[] };
+  | { t: "fn"; name: string; flags: string[]; params: Record<string, string>; c: Span[] }
+  | { t: "tag"; name: "small" | "center"; c: Span[] }
+  | { t: "emoji"; name: string };
 
 function isSafeCssColor(value: string) {
   if (/^#[0-9a-fA-F]{3}$/.test(value)) return true;
@@ -57,6 +59,33 @@ function parseInline(input: string): Span[] {
   const startsWith = (s: string) => input.slice(i, i + s.length) === s;
 
   while (i < input.length) {
+    // Simple tag syntax subset: <small>...</small>, <center>...</center>
+    if (input[i] === "<") {
+      const tryTag = (name: "small" | "center") => {
+        const open = `<${name}>`;
+        const close = `</${name}>`;
+        if (!startsWith(open)) return null;
+        const end = input.indexOf(close, i + open.length);
+        if (end === -1) return null;
+        const inner = input.slice(i + open.length, end);
+        return { end: end + close.length, inner };
+      };
+
+      const small = tryTag("small");
+      if (small) {
+        out.push({ t: "tag", name: "small", c: parseInline(small.inner) });
+        i = small.end;
+        continue;
+      }
+
+      const center = tryTag("center");
+      if (center) {
+        out.push({ t: "tag", name: "center", c: parseInline(center.inner) });
+        i = center.end;
+        continue;
+      }
+    }
+
     // MFM function syntax: $[name content...]
     if (startsWith("$[")) {
       let j = i + 2;
@@ -170,6 +199,19 @@ function parseInline(input: string): Span[] {
       }
     }
 
+    // custom emoji :name:
+    if (input[i] === ":") {
+      const end = input.indexOf(":", i + 1);
+      if (end !== -1) {
+        const name = input.slice(i + 1, end);
+        if (/^[a-zA-Z0-9_+-]{1,64}$/.test(name)) {
+          out.push({ t: "emoji", name });
+          i = end + 1;
+          continue;
+        }
+      }
+    }
+
     pushText(input[i]);
     i += 1;
   }
@@ -177,18 +219,22 @@ function parseInline(input: string): Span[] {
   return out;
 }
 
-function renderSpans(spans: Span[], keyPrefix: string): ReactNode[] {
+function renderSpans(
+  spans: Span[],
+  keyPrefix: string,
+  emojiResolver?: (name: string) => string | undefined,
+): ReactNode[] {
   return spans.map((s, idx) => {
     const key = `${keyPrefix}-${idx}`;
     switch (s.t) {
       case "text":
         return <span key={key}>{s.v}</span>;
       case "bold":
-        return <strong key={key}>{renderSpans(s.c, key)}</strong>;
+        return <strong key={key}>{renderSpans(s.c, key, emojiResolver)}</strong>;
       case "italic":
-        return <em key={key}>{renderSpans(s.c, key)}</em>;
+        return <em key={key}>{renderSpans(s.c, key, emojiResolver)}</em>;
       case "strike":
-        return <del key={key}>{renderSpans(s.c, key)}</del>;
+        return <del key={key}>{renderSpans(s.c, key, emojiResolver)}</del>;
       case "code":
         return (
           <code key={key} style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace" }}>
@@ -198,7 +244,7 @@ function renderSpans(spans: Span[], keyPrefix: string): ReactNode[] {
       case "link":
         return (
           <a key={key} href={s.href} target="_blank" rel="noreferrer noopener">
-            {renderSpans(s.label, key)}
+            {renderSpans(s.label, key, emojiResolver)}
           </a>
         );
       case "url":
@@ -341,9 +387,31 @@ function renderSpans(spans: Span[], keyPrefix: string): ReactNode[] {
 
         return (
           <span key={key} className={className} style={style}>
-            {renderSpans(s.c, key)}
+            {renderSpans(s.c, key, emojiResolver)}
           </span>
         );
+      }
+      case "tag": {
+        if (s.name === "small") {
+          return (
+            <span key={key} className="mfmTagSmall">
+              {renderSpans(s.c, key, emojiResolver)}
+            </span>
+          );
+        }
+        if (s.name === "center") {
+          return (
+            <span key={key} className="mfmTagCenter">
+              {renderSpans(s.c, key, emojiResolver)}
+            </span>
+          );
+        }
+        return null;
+      }
+      case "emoji": {
+        const url = emojiResolver?.(s.name);
+        if (!url) return <span key={key}>{`:${s.name}:`}</span>;
+        return <img key={key} className="mfmEmoji" src={url} alt={`:${s.name}:`} loading="lazy" decoding="async" />;
       }
       default:
         return null;
@@ -351,7 +419,7 @@ function renderSpans(spans: Span[], keyPrefix: string): ReactNode[] {
   });
 }
 
-export function renderMfm(input: string): ReactNode {
+export function renderMfm(input: string, opts?: { emojiResolver?: (name: string) => string | undefined }): ReactNode {
   // Block code: ``` ... ```
   if (input.startsWith("```") && input.endsWith("```") && input.length >= 6) {
     const body = input.slice(3, -3);
@@ -367,7 +435,7 @@ export function renderMfm(input: string): ReactNode {
     <>
       {lines.map((line, idx) => (
         <div key={idx} style={{ whiteSpace: "pre-wrap" }}>
-          {renderSpans(parseInline(line), `l${idx}`)}
+          {renderSpans(parseInline(line), `l${idx}`, opts?.emojiResolver)}
         </div>
       ))}
     </>

@@ -7,6 +7,11 @@ import { renderMfm } from "../mfm/renderMfm";
 import { loadAccounts } from "../accounts/accountsStore";
 import { fetchTimeline } from "../misskey/api";
 import { startTimelineStream } from "../misskey/streaming";
+import { reactToNote, createNote, showNote, unreactToNote } from "../misskey/api";
+import { PostActionModal } from "./PostActionModal";
+import { EmojiPickerModal } from "./EmojiPickerModal";
+import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../misskey/emojis";
+import { ReplyIcon, RepeatIcon, SmileIcon } from "../icons";
 
 type Props = {
   query: TileQuery;
@@ -22,6 +27,11 @@ export function TileTimeline(props: Props) {
   const [mode, setMode] = useState<"mock" | "misskey">("mock");
   const nextCursorRef = useRef<string | null>(null);
   const streamRef = useRef<{ close: () => void } | null>(null);
+  const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ mode: "quote" | "reply" | null; post: Post | null }>({ mode: null, post: null });
+  const [emojiOpenFor, setEmojiOpenFor] = useState<Post | null>(null);
+  const [emojiList, setEmojiList] = useState<MisskeyEmoji[]>([]);
+  const [cwOpen, setCwOpen] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let canceled = false;
@@ -118,16 +128,17 @@ export function TileTimeline(props: Props) {
   };
 
   return (
-    <VirtualList
-      className="tileScroller"
-      items={items}
-      estimateItemHeight={78}
-      overscan={8}
-      endThresholdPx={900}
-      onNearEnd={loadMore}
-      renderItem={(p, idx) => (
-        <div className="listItem" key={`${p.createdAt}-${idx}`}>
-          <div className="listRow">
+    <>
+      <VirtualList
+        className="tileScroller"
+        items={items}
+        estimateItemHeight={78}
+        overscan={8}
+        endThresholdPx={900}
+        onNearEnd={loadMore}
+        renderItem={(p, idx) => (
+          <div className="listItem" key={`${p.createdAt}-${idx}`}>
+            <div className="listRow">
             {p.author.avatarUrl ? (
               <img className="avatar" src={p.author.avatarUrl} alt="" loading="lazy" decoding="async" />
             ) : (
@@ -135,38 +146,324 @@ export function TileTimeline(props: Props) {
             )}
             <div style={{ minWidth: 0 }}>
               <div className="listTitle">{p.author.displayName ?? p.author.handle}</div>
-              {p.repostOf ? (
-                <>
-                  <div className="listMeta listRenoteMeta">Renoted</div>
-                  <div className="renoteBox">
-                    <div className="listRow">
-                      {p.repostOf.author.avatarUrl ? (
-                        <img
-                          className="avatar"
-                          src={p.repostOf.author.avatarUrl}
-                          alt=""
-                          loading="lazy"
-                          decoding="async"
-                        />
-                      ) : (
-                        <div className="avatar avatarFallback" aria-hidden="true" />
-                      )}
-                      <div style={{ minWidth: 0 }}>
-                        <div className="listTitle">{p.repostOf.author.displayName ?? p.repostOf.author.handle}</div>
-                        <div className="listMeta">
-                          {p.repostOf.contentFormat === "mfm" ? renderMfm(p.repostOf.content) : p.repostOf.content}
+              {(() => {
+                const key = (p.uri ?? (p.remoteId as any as string) ?? `${p.createdAt}-${idx}`) as string;
+                const open = cwOpen[key] === true;
+                const hasCw = !!p.cw;
+                const toggle = () => setCwOpen((m) => ({ ...m, [key]: !open }));
+
+                const renderMedia = (post: Post) => {
+                  if (!post.media || post.media.length === 0) return null;
+                  return (
+                    <div className="mediaGrid">
+                      {post.media
+                        .filter((m) => m.url)
+                        .slice(0, 6)
+                        .map((m, mi) => (
+                          <a key={mi} href={m.url} target="_blank" rel="noreferrer noopener" className="mediaItem">
+                            {m.type === "image" ? (
+                              <img className="mediaThumb" src={m.previewUrl ?? m.url} alt={m.description ?? ""} loading="lazy" decoding="async" />
+                            ) : m.type === "video" ? (
+                              <div className="mediaVideo">
+                                {m.previewUrl ? <img className="mediaThumb" src={m.previewUrl} alt="" loading="lazy" decoding="async" /> : null}
+                                <div className="mediaBadge">VIDEO</div>
+                              </div>
+                            ) : (
+                              <div className="mediaBadge">FILE</div>
+                            )}
+                          </a>
+                        ))}
+                    </div>
+                  );
+                };
+
+                const renderBody = (post: Post) => (
+                  <>
+                    <div className="listMeta">
+                      {post.contentFormat === "mfm"
+                        ? renderMfm(post.content, { emojiResolver: buildEmojiResolver({ emojis: post.customEmojis, global: emojiList }) })
+                        : post.content}
+                    </div>
+                    {renderMedia(post)}
+                  </>
+                );
+
+                if (p.repostOf) {
+                  return (
+                    <>
+                      {hasCw ? (
+                        <div className="cwLine">
+                          <span className="cwText">{p.cw}</span>
+                          <button type="button" className="cwBtn" onClick={toggle}>
+                            {open ? "Hide" : "View"}
+                          </button>
+                        </div>
+                      ) : null}
+                      {open || !hasCw ? (p.content?.trim() ? renderBody(p) : null) : null}
+
+                      <div className="listMeta listRenoteMeta">{p.content?.trim() ? "" : "Renoted"}</div>
+                      <div className="renoteBox">
+                        <div className="listRow">
+                          {p.repostOf.author.avatarUrl ? (
+                            <img className="avatar" src={p.repostOf.author.avatarUrl} alt="" loading="lazy" decoding="async" />
+                          ) : (
+                            <div className="avatar avatarFallback" aria-hidden="true" />
+                          )}
+                          <div style={{ minWidth: 0 }}>
+                            <div className="listTitle">{p.repostOf.author.displayName ?? p.repostOf.author.handle}</div>
+                            {p.repostOf.cw ? (
+                              <div className="cwLine">
+                                <span className="cwText">{p.repostOf.cw}</span>
+                                <button
+                                  type="button"
+                                  className="cwBtn"
+                                  onClick={() => {
+                                    const k2 = `${key}:repost`;
+                                    const open2 = cwOpen[k2] === true;
+                                    setCwOpen((m) => ({ ...m, [k2]: !open2 }));
+                                  }}
+                                >
+                                  {cwOpen[`${key}:repost`] ? "Hide" : "View"}
+                                </button>
+                              </div>
+                            ) : null}
+                            {(p.repostOf.cw ? cwOpen[`${key}:repost`] : true) ? renderBody(p.repostOf) : null}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="listMeta">{p.contentFormat === "mfm" ? renderMfm(p.content) : p.content}</div>
-              )}
+                    </>
+                  );
+                }
+
+                if (hasCw) {
+                  return (
+                    <>
+                      <div className="cwLine">
+                        <span className="cwText">{p.cw}</span>
+                        <button type="button" className="cwBtn" onClick={toggle}>
+                          {open ? "Hide" : "View"}
+                        </button>
+                      </div>
+                      {open ? renderBody(p) : null}
+                    </>
+                  );
+                }
+
+                return renderBody(p);
+              })()}
+
+              <div className="postActions">
+                <button
+                  className="postIconBtn"
+                  title="Reply"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setModal({ mode: "reply", post: p });
+                  }}
+                >
+                  <span className="postIconSvg" aria-hidden="true">
+                    <ReplyIcon />
+                  </span>
+                </button>
+
+                <button
+                  className="postIconBtn"
+                  title="Renote"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActionMenuFor((p.remoteId as any as string) ?? null);
+                  }}
+                >
+                  <span className="postIconSvg" aria-hidden="true">
+                    <RepeatIcon />
+                  </span>
+                </button>
+
+                <button
+                  className="postIconBtn"
+                  title="React"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (mode !== "misskey") return;
+                    try {
+                      const accounts = await loadAccounts();
+                      const account = accounts.misskey[0];
+                      if (!account) throw new Error("No Misskey account connected");
+                      const emojis = await getEmojis(account);
+                      setEmojiList(emojis);
+                    } catch {
+                      setEmojiList([]);
+                    } finally {
+                      setEmojiOpenFor(p);
+                    }
+                  }}
+                >
+                  <span className="postIconSvg" aria-hidden="true">
+                    <SmileIcon />
+                  </span>
+                </button>
+              </div>
+
+              {Array.isArray(p.reactions) && p.reactions.length > 0 ? (
+                <div className="reactionBar" aria-label="Reactions">
+                  {p.reactions.slice(0, 8).map((r) => (
+                    <button
+                      type="button"
+                      className={["reactionPill", p.myReaction === r.key ? "reactionPillActive" : ""].filter(Boolean).join(" ")}
+                      key={r.key}
+                      title="Toggle reaction"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (mode !== "misskey") return;
+                        const noteId = (p.remoteId as any as string | undefined) ?? "";
+                        if (!noteId) return;
+                        const accounts = await loadAccounts();
+                        const account = accounts.misskey[0];
+                        if (!account) return;
+
+                        // Ensure we have myReaction/reactions for older notes.
+                        let current = p;
+                        if (!current.myReaction || !Array.isArray(current.reactions)) {
+                          try {
+                            const fresh = await showNote(account, { noteId });
+                            setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? { ...x, ...fresh } : x)));
+                            current = fresh;
+                          } catch {
+                            // ignore
+                          }
+                        }
+
+                        const already = current.myReaction === r.key;
+                        try {
+                          // optimistic UI
+                          setItems((prev) =>
+                            prev.map((x) => {
+                              if ((x.remoteId as any) !== noteId) return x;
+                              const reactions = (x.reactions ?? []).map((rr) =>
+                                rr.key === r.key ? { ...rr, count: Math.max(0, rr.count + (already ? -1 : 1)) } : rr,
+                              );
+                              const myReaction = already ? undefined : r.key;
+                              return { ...x, reactions, myReaction };
+                            }),
+                          );
+
+                          if (already) await unreactToNote(account, { noteId });
+                          else await reactToNote(account, { noteId, reaction: r.key });
+                        } catch {
+                          // revert by refetch
+                          try {
+                            const fresh = await showNote(account, { noteId });
+                            setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? fresh : x)));
+                          } catch {
+                            // ignore
+                          }
+                        }
+                      }}
+                    >
+                      {(() => {
+                        const resolver = buildEmojiResolver({ emojis: p.customEmojis, global: emojiList });
+                        const key = r.key;
+                        if (key.startsWith(":") && key.endsWith(":")) {
+                          const name = key.slice(1, -1);
+                          const url = resolver(name);
+                          return (
+                            <>
+                              {url ? <img src={url} alt={key} loading="lazy" decoding="async" /> : key}
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            {key}
+                          </>
+                        );
+                      })()}{" "}
+                      {r.count}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {actionMenuFor && actionMenuFor === (p.remoteId as any as string | null) ? (
+                <div className="tileMenu" role="menu" style={{ position: "relative", marginTop: 8, right: "auto" as any }}>
+                  <button
+                    className="tileMenuItem"
+                    role="menuitem"
+                    onClick={async () => {
+                      setActionMenuFor(null);
+                      if (mode !== "misskey") return;
+                      const noteId = (p.remoteId as any as string | undefined) ?? "";
+                      if (!noteId) return;
+                      const accounts = await loadAccounts();
+                      const account = accounts.misskey[0];
+                      if (!account) return;
+                      await createNote(account, { text: "", renoteId: noteId, visibility: "public" });
+                    }}
+                  >
+                    Renote
+                  </button>
+                  <button
+                    className="tileMenuItem"
+                    role="menuitem"
+                    onClick={() => {
+                      setActionMenuFor(null);
+                      setModal({ mode: "quote", post: p });
+                    }}
+                  >
+                    Quote…
+                  </button>
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
       )}
     />
+
+      <PostActionModal mode={modal.mode} post={modal.post} onClose={() => setModal({ mode: null, post: null })} />
+
+      <EmojiPickerModal
+        isOpen={!!emojiOpenFor}
+        emojis={emojiList}
+        onClose={() => setEmojiOpenFor(null)}
+        onPick={async (reaction) => {
+          const p = emojiOpenFor;
+          setEmojiOpenFor(null);
+          if (!p || mode !== "misskey") return;
+          const noteId = (p.remoteId as any as string | undefined) ?? "";
+          if (!noteId) return;
+          const accounts = await loadAccounts();
+          const account = accounts.misskey[0];
+          if (!account) return;
+          // optimistic update
+          setItems((prev) =>
+            prev.map((x) => {
+              if ((x.remoteId as any) !== noteId) return x;
+              const reactions = x.reactions ? x.reactions.slice() : [];
+              const idx = reactions.findIndex((r) => r.key === reaction);
+              if (idx >= 0) reactions[idx] = { ...reactions[idx], count: reactions[idx].count + 1 };
+              else reactions.unshift({ key: reaction, count: 1 });
+              return { ...x, reactions, myReaction: reaction };
+            }),
+          );
+          try {
+            await reactToNote(account, { noteId, reaction });
+            // refresh to reflect server truth (and other reactions)
+            const fresh = await showNote(account, { noteId });
+            setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? { ...x, ...fresh } : x)));
+          } catch {
+            // revert by refetch
+            try {
+              const fresh = await showNote(account, { noteId });
+              setItems((prev) => prev.map((x) => ((x.remoteId as any) === noteId ? fresh : x)));
+            } catch {
+              // ignore
+            }
+          }
+        }}
+      />
+    </>
   );
 }
+
+// (legacy export removed)

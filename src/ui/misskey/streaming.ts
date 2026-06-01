@@ -17,6 +17,9 @@ function normalizeNote(account: MisskeyAccount, note: any): Post {
   const id = note?.id as string | undefined;
   const uri = id ? (`${account.instanceUrl}/notes/${id}` as any) : undefined;
   const renotePost = renote ? normalizeNote(account, renote) : undefined;
+  const emojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
+  const files = Array.isArray(note?.files) ? note.files : [];
+  const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
   return {
     serviceId: "misskey",
     uri,
@@ -30,10 +33,24 @@ function normalizeNote(account: MisskeyAccount, note: any): Post {
     contentFormat: "mfm",
     content: text || (renotePost ? "" : ""),
     cw,
+    media:
+      files.length > 0
+        ? files.map((f: any) => ({
+            type:
+              f?.type?.startsWith("image/") ? "image" : f?.type?.startsWith("video/") ? "video" : f?.type?.startsWith("audio/") ? "audio" : "unknown",
+            url: String(f?.url ?? ""),
+            previewUrl: f?.thumbnailUrl ? String(f.thumbnailUrl) : undefined,
+            description: f?.comment ? String(f.comment) : undefined,
+            width: typeof f?.properties?.width === "number" ? f.properties.width : undefined,
+            height: typeof f?.properties?.height === "number" ? f.properties.height : undefined,
+          }))
+        : undefined,
     tags: Array.isArray(note?.tags) ? note.tags : undefined,
     reactions: note?.reactions
       ? Object.entries(note.reactions).map(([key, count]) => ({ key, count: Number(count) || 0 }))
       : undefined,
+    myReaction: myReaction ?? undefined,
+    customEmojis: emojis,
     repostOfUri: renotePost?.uri,
     repostOf: renotePost,
     url: uri,

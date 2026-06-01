@@ -49,9 +49,16 @@ $[jelly jelly] $[tada tada] $[rainbow rainbow] $[sparkle sparkle]
 $[rotate.deg=12 rotate] $[position.x=0.8,y=0.2 pos] $[scale.x=1.6,y=0.9 scale]
 $[x2 big] $[x3 bigger] $[x4 biggest]
 $[font.serif serif] $[font.monospace mono]
-$[fg.color=38bdf8 cyan] $[bg.color=111827 bg]`
+$[fg.color=38bdf8 cyan] $[bg.color=111827 bg]
+custom emoji: :party_parrot:
+<small>small text</small>
+<center>centered line</center>`
           : `(${label}) Example item ${i + 1}. This is placeholder data until connectors are implemented.`,
       tags: query.kind === "hashtag" ? [query.tag] : undefined,
+      customEmojis: {
+        party_parrot:
+          "https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f389.svg",
+      },
     });
   }
   return items;

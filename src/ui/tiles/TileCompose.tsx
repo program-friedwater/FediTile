@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { loadAccounts } from "../accounts/accountsStore";
 import { createNote } from "../misskey/api";
+import { Button } from "../components/Button";
+import { FieldRow, Input, Label, Select, Textarea } from "../components/Field";
+import { Pill } from "../components/Pill";
 
 type Draft = {
   cw: string;
@@ -20,33 +23,26 @@ export function TileCompose(props: { onPosted?: () => void }) {
   }, [draft.text.length]);
 
   return (
-    <div style={{ height: "100%", display: "grid", gap: 10, gridTemplateRows: "auto 1fr auto" }}>
-      <div className="fieldRow">
-        <div className="label">Content warning (optional)</div>
-        <input
-          className="input"
-          value={draft.cw}
-          onChange={(e) => setDraft((d) => ({ ...d, cw: e.target.value }))}
-          placeholder="CW"
-        />
-      </div>
+    <div className="composeLayout">
+      <FieldRow>
+        <Label>Content warning (optional)</Label>
+        <Input value={draft.cw} onChange={(e) => setDraft((d) => ({ ...d, cw: e.target.value }))} placeholder="CW" />
+      </FieldRow>
 
-      <div className="fieldRow" style={{ minHeight: 0 }}>
-        <div className="label">Post</div>
-        <textarea
-          className="input"
+      <FieldRow tight style={{ minHeight: 0 }}>
+        <Label>Post</Label>
+        <Textarea
           style={{ resize: "none", height: "100%", fontFamily: "inherit", lineHeight: 1.4 }}
           value={draft.text}
           onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
           placeholder="Write something…"
         />
-      </div>
+      </FieldRow>
 
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <span className="pill">Remaining: {remaining}</span>
-          <select
-            className="select"
+          <Pill>Remaining: {remaining}</Pill>
+          <Select
             value={draft.visibility}
             onChange={(e) => setDraft((d) => ({ ...d, visibility: e.target.value as Draft["visibility"] }))}
             style={{ width: 160 }}
@@ -55,11 +51,10 @@ export function TileCompose(props: { onPosted?: () => void }) {
             <option value="unlisted">Unlisted</option>
             <option value="followers">Followers</option>
             <option value="direct">Direct</option>
-          </select>
+          </Select>
         </div>
 
-        <button
-          className="btn"
+        <Button
           disabled={posting || draft.text.trim().length === 0}
           onClick={async () => {
             setStatus(null);
@@ -95,13 +90,11 @@ export function TileCompose(props: { onPosted?: () => void }) {
           title="Post (mock)"
         >
           {posting ? "Posting…" : "Post"}
-        </button>
+        </Button>
       </div>
 
       {status ? (
-        <div className="pill" style={{ color: status === "Posted." ? "var(--muted)" : "var(--danger)" }}>
-          {status}
-        </div>
+        <Pill tone={status === "Posted." ? "default" : "danger"}>{status}</Pill>
       ) : null}
     </div>
   );

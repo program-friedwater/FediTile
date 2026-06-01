@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import type { Tile, TileSize } from "./tileTypes";
-import { tileKindIcon, tileKindLabel } from "./tileTypes";
+import { tileKindLabel } from "./tileTypes";
 import { TileTimeline } from "./TileTimeline";
 import { TileCompose } from "./TileCompose";
+import { IconButton } from "../components/Button";
+import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon } from "../icons";
 
 type Props = {
   tile: Tile;
@@ -52,7 +54,26 @@ export function TileView(props: Props) {
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const kindLabel = tileKindLabel(props.tile.query.kind);
-  const kindIcon = tileKindIcon(props.tile.query.kind);
+  const kindIcon = (() => {
+    switch (props.tile.query.kind) {
+      case "home":
+        return <HomeIcon />;
+      case "local":
+        return <LocalIcon />;
+      case "federated":
+        return <GlobeIcon />;
+      case "notifications":
+        return <BellIcon />;
+      case "hashtag":
+        return <HashIcon />;
+      case "search":
+        return <SearchIcon />;
+      case "compose":
+        return <PenIcon />;
+      default:
+        return null;
+    }
+  })();
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -122,38 +143,12 @@ export function TileView(props: Props) {
         />
       ) : null}
       <div className="tileHeader">
-        <div className="tileTitleWrap">
-          {renaming ? (
-            <input
-              className="input"
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  props.onRename(titleDraft.trim() || kindLabel);
-                  setRenaming(false);
-                } else if (e.key === "Escape") {
-                  setTitleDraft(props.tile.title);
-                  setRenaming(false);
-                }
-              }}
-              autoFocus
-            />
-          ) : (
-            <>
-              <div className="tileTitle">{props.tile.title}</div>
-              <div className="tileMeta">
-                <span className="tileKindIcon" aria-hidden="true">
-                  {kindIcon}
-                </span>{" "}
-                {kindLabel} <span style={{ opacity: 0.5 }}>•</span> {props.tile.refreshMode}
-              </div>
-            </>
-          )}
+        <div className="tileTypeLabel">
+          {kindIcon}
+          <span>{kindLabel}</span>
         </div>
         <div className="tileToolbar" ref={menuRef}>
-          <button
-            className="iconBtn"
+          <IconButton
             title="Menu"
             aria-haspopup="menu"
             aria-expanded={menuOpen}
@@ -163,7 +158,7 @@ export function TileView(props: Props) {
             }}
           >
             ⋮
-          </button>
+          </IconButton>
           {menuOpen ? (
             <div className="tileMenu" role="menu" onMouseDown={(e) => e.stopPropagation()}>
               {props.onSplitCol ? (
@@ -190,16 +185,6 @@ export function TileView(props: Props) {
                   Split horizontally
                 </button>
               ) : null}
-              <button
-                className="tileMenuItem"
-                role="menuitem"
-                onClick={() => {
-                  setRenaming(true);
-                  setMenuOpen(false);
-                }}
-              >
-                Rename
-              </button>
               {props.onEdit ? (
                 <button
                   className="tileMenuItem"
