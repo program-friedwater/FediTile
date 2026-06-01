@@ -187,6 +187,12 @@ export async function showNote(account: MisskeyAccount, args: { noteId: string }
   return normalizeMisskeyNote(account, note);
 }
 
+export async function fetchReplies(account: MisskeyAccount, args: { noteId: string; limit?: number }): Promise<Post[]> {
+  const limit = typeof args.limit === "number" ? args.limit : 30;
+  const notes = await postJson<MisskeyNote[]>(account, "notes/replies", { noteId: args.noteId, limit });
+  return notes.map((n) => normalizeMisskeyNote(account, n));
+}
+
 export async function showUser(
   account: MisskeyAccount,
   args: { userId: string },

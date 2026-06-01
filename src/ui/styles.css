@@ -1299,3 +1299,15 @@ textarea.input {
   max-height: 5.2em;
   overflow: hidden;
 }
+
+.inspectCard {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  padding: 10px;
+}
+
+.inspectReply {
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  background: color-mix(in oklab, var(--panel) 65%, transparent);
+  padding: 8px;
+}

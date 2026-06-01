@@ -198,7 +198,15 @@ export function TileTimeline(props: Props) {
               <div className="avatar avatarFallback" aria-hidden="true" />
             )}
             <div style={{ minWidth: 0 }}>
-              <div className="listTitleRow">
+              <div
+                className="listTitleRow"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  emitInspectIntent({ type: "author", author: p.author });
+                }}
+                style={{ cursor: "pointer" }}
+                title="Inspect user"
+              >
                 <span className="listTitle">
                   {renderNameWithEmojis(
                     p.author.displayName ?? p.author.handle,

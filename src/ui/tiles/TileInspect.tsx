@@ -6,11 +6,14 @@ import { renderMfm } from "../mfm/renderMfm";
 import { buildEmojiResolver, type MisskeyEmoji } from "../misskey/emojis";
 import { getEmojis } from "../misskey/emojis";
 import { loadAccounts } from "../accounts/accountsStore";
-import { showNote, showUser } from "../misskey/api";
+import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote } from "../misskey/api";
+import { EmojiPickerModal } from "./EmojiPickerModal";
+import { PostActionModal } from "./PostActionModal";
+import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons";
 
 type ViewState =
   | { kind: "empty" }
-  | { kind: "post"; post: Post; loadedAt: string }
+  | { kind: "post"; post: Post; replies: Post[]; loadedAt: string }
   | { kind: "author"; author: Author; loadedAt: string; noteCount?: number };
 
 function nowIso() {
@@ -20,6 +23,10 @@ function nowIso() {
 export function TileInspect() {
   const [state, setState] = useState<ViewState>({ kind: "empty" });
   const [globalEmojis, setGlobalEmojis] = useState<MisskeyEmoji[]>([]);
+  const [emojiOpenFor, setEmojiOpenFor] = useState<Post | null>(null);
+  const [actionMenuFor, setActionMenuFor] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ mode: "quote" | "reply" | null; post: Post | null }>({ mode: null, post: null });
+  const [errorText, setErrorText] = useState<string | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -43,7 +50,7 @@ export function TileInspect() {
   useEffect(() => {
     return onInspectIntent(async (intent) => {
       if (intent.type === "post") {
-        setState({ kind: "post", post: intent.post, loadedAt: nowIso() });
+        setState({ kind: "post", post: intent.post, replies: [], loadedAt: nowIso() });
         try {
           const accounts = await loadAccounts();
           const account = accounts.misskey[0];
@@ -51,7 +58,8 @@ export function TileInspect() {
           const id = (intent.post.remoteId as any as string | undefined) ?? "";
           if (!id) return;
           const fresh = await showNote(account, { noteId: id });
-          setState({ kind: "post", post: fresh, loadedAt: nowIso() });
+          const replies = await fetchReplies(account, { noteId: id, limit: 40 });
+          setState({ kind: "post", post: fresh, replies, loadedAt: nowIso() });
         } catch {
           // ignore
         }
@@ -125,6 +133,110 @@ export function TileInspect() {
               <span className="cwText">{state.post.cw}</span>
             </div>
           ) : null}
+
+          <div className="postActions">
+            <button
+              className="postIconBtn"
+              title="Reply"
+              onClick={(e) => {
+                e.stopPropagation();
+                setModal({ mode: "reply", post: state.post });
+              }}
+            >
+              <span className="postIconSvg" aria-hidden="true">
+                <ReplyIcon />
+              </span>
+            </button>
+            <button
+              className="postIconBtn"
+              title="Renote"
+              onClick={(e) => {
+                e.stopPropagation();
+                setActionMenuFor((state.post.remoteId as any as string) ?? null);
+              }}
+            >
+              <span className="postIconSvg" aria-hidden="true">
+                <RepeatIcon />
+              </span>
+            </button>
+            <button
+              className="postIconBtn"
+              title="React"
+              onClick={async (e) => {
+                e.stopPropagation();
+                try {
+                  const accounts = await loadAccounts();
+                  const account = accounts.misskey[0];
+                  if (!account) throw new Error("No Misskey account connected");
+                  const emojis = await getEmojis(account);
+                  setGlobalEmojis(emojis);
+                } catch {
+                  // ignore
+                } finally {
+                  setEmojiOpenFor(state.post);
+                }
+              }}
+            >
+              <span className="postIconSvg" aria-hidden="true">
+                <SmileIcon />
+              </span>
+            </button>
+          </div>
+
+          {Array.isArray(state.post.reactions) && state.post.reactions.length > 0 ? (
+            <div className="reactionBar" aria-label="Reactions">
+              {state.post.reactions.slice(0, 12).map((r) => (
+                <button
+                  type="button"
+                  className={["reactionPill", state.post.myReaction === r.key ? "reactionPillActive" : ""].filter(Boolean).join(" ")}
+                  key={r.key}
+                  title="Toggle reaction"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const noteId = (state.post.remoteId as any as string | undefined) ?? "";
+                    if (!noteId) return;
+                    const accounts = await loadAccounts();
+                    const account = accounts.misskey[0];
+                    if (!account) return;
+                    const already = state.post.myReaction === r.key;
+                    try {
+                      // optimistic update
+                      setState((prev) => {
+                        if (prev.kind !== "post") return prev;
+                        const reactions = (prev.post.reactions ?? []).map((rr) =>
+                          rr.key === r.key ? { ...rr, count: Math.max(0, rr.count + (already ? -1 : 1)) } : rr,
+                        );
+                        return { ...prev, post: { ...prev.post, reactions, myReaction: already ? undefined : r.key }, loadedAt: nowIso() };
+                      });
+                      if (already) await unreactToNote(account, { noteId });
+                      else await reactToNote(account, { noteId, reaction: r.key });
+                      const fresh = await showNote(account, { noteId });
+                      setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
+                    } catch {
+                      try {
+                        const fresh = await showNote(account, { noteId });
+                        setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
+                      } catch {
+                        // ignore
+                      }
+                    }
+                  }}
+                >
+                  {(() => {
+                    const key = r.key;
+                    if (key.startsWith(":") && key.endsWith(":")) {
+                      const name = key.slice(1, -1);
+                      const url = resolver(name);
+                      return <>{url ? <img src={url} alt={key} loading="lazy" decoding="async" /> : key}</>;
+                    }
+                    return <>{key}</>;
+                  })()}{" "}
+                  {r.count}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <div className="listMeta">
             {state.post.contentFormat === "mfm" ? renderMfm(state.post.content, { emojiResolver: resolver }) : state.post.content}
           </div>
@@ -135,6 +247,95 @@ export function TileInspect() {
               </a>
             </div>
           ) : null}
+
+          {actionMenuFor && actionMenuFor === ((state.post.remoteId as any as string | null) ?? null) ? (
+            <div className="tileMenu" role="menu" style={{ position: "relative", marginTop: 8, right: "auto" as any }}>
+              <button
+                className="tileMenuItem"
+                role="menuitem"
+                onClick={async () => {
+                  setActionMenuFor(null);
+                  const noteId = ((state.post.repostOf?.remoteId ?? state.post.remoteId) as any as string | undefined) ?? "";
+                  if (!noteId) return;
+                  const accounts = await loadAccounts();
+                  const account = accounts.misskey[0];
+                  if (!account) return;
+                  try {
+                    await createNote(account, { renoteId: noteId, visibility: "public" });
+                  } catch (e) {
+                    setErrorText(e instanceof Error ? e.message : String(e));
+                  }
+                }}
+              >
+                Renote
+              </button>
+              <button
+                className="tileMenuItem"
+                role="menuitem"
+                onClick={() => {
+                  setActionMenuFor(null);
+                  setModal({ mode: "quote", post: state.post });
+                }}
+              >
+                Quote…
+              </button>
+            </div>
+          ) : null}
+
+          {state.replies.length > 0 ? (
+            <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+              <div style={{ fontWeight: 900 }}>Replies</div>
+              {state.replies.slice(0, 40).map((rp) => (
+                <div key={String(rp.remoteId ?? rp.uri ?? rp.createdAt)} className="inspectReply">
+                  <div className="listTitleRow">
+                    <span className="listTitle">{rp.author.displayName ?? rp.author.handle}</span>
+                    <span className="listHandleMuted">{rp.author.handle}</span>
+                  </div>
+                  <div className="listMeta">
+                    {rp.contentFormat === "mfm"
+                      ? renderMfm(rp.content, { emojiResolver: buildEmojiResolver({ emojis: rp.customEmojis, global: globalEmojis }) })
+                      : rp.content}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      <EmojiPickerModal
+        isOpen={!!emojiOpenFor}
+        emojis={globalEmojis}
+        onClose={() => setEmojiOpenFor(null)}
+        onPick={async (reaction) => {
+          const p = emojiOpenFor;
+          setEmojiOpenFor(null);
+          if (!p) return;
+          const noteId = (p.remoteId as any as string | undefined) ?? "";
+          if (!noteId) return;
+          const accounts = await loadAccounts();
+          const account = accounts.misskey[0];
+          if (!account) return;
+          try {
+            await reactToNote(account, { noteId, reaction });
+            const fresh = await showNote(account, { noteId });
+            setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
+          } catch (e) {
+            setErrorText(e instanceof Error ? e.message : String(e));
+          }
+        }}
+      />
+
+      <PostActionModal mode={modal.mode} post={modal.post} onClose={() => setModal({ mode: null, post: null })} />
+
+      {errorText ? (
+        <div className="cwLine" style={{ marginTop: 10 }}>
+          <span className="cwText" style={{ whiteSpace: "pre-wrap" }}>
+            {errorText}
+          </span>
+          <button type="button" className="cwBtn" onClick={() => setErrorText(null)}>
+            Close
+          </button>
         </div>
       ) : null}
     </div>
