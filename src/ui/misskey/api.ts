@@ -9,7 +9,6 @@ function toCursor(req: TimelineRequest): { sinceId?: string; untilId?: string; l
   switch (req.cursor.type) {
     case "since_id":
       return { limit, sinceId: req.cursor.value };
-    case "until_id":
     case "max_id":
       return { limit, untilId: req.cursor.value };
     default:
@@ -118,7 +117,7 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
 
   const notes = await postJson<MisskeyNote[]>(account, endpoint, body);
   const items = notes.map((n) => normalizeNote(account, n));
-  const nextCursor: Cursor | undefined = items.length > 0 ? { type: "until_id", value: String(notes[notes.length - 1]?.id) } : undefined;
+  const nextCursor: Cursor | undefined = items.length > 0 ? { type: "max_id", value: String(notes[notes.length - 1]?.id) } : undefined;
   return { items, nextCursor };
 }
 

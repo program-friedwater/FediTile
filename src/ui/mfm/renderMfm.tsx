@@ -320,7 +320,7 @@ function renderSpans(
           }
         })();
 
-        const style: React.CSSProperties = {};
+        const style = {} as React.CSSProperties & Record<string, string>;
 
         const speed = s.params["speed"];
         if (speed && /^[0-9.]+m?s$/.test(speed)) {
@@ -335,7 +335,7 @@ function renderSpans(
         if (fn === "rotate") {
           const deg = s.params["deg"];
           if (deg && /^-?[0-9.]+$/.test(deg)) {
-            style.setProperty?.("--mfm-rotate-deg" as any, `${deg}deg`);
+            style["--mfm-rotate-deg"] = `${deg}deg`;
           }
         }
 
@@ -350,8 +350,8 @@ function renderSpans(
           };
           const sx = clamp(x);
           const sy = clamp(y);
-          if (sx != null) style.setProperty?.("--mfm-scale-x" as any, String(sx));
-          if (sy != null) style.setProperty?.("--mfm-scale-y" as any, String(sy));
+          if (sx != null) style["--mfm-scale-x"] = String(sx);
+          if (sy != null) style["--mfm-scale-y"] = String(sy);
         }
 
         if (fn === "position") {
@@ -363,8 +363,8 @@ function renderSpans(
           };
           const px = parse(s.params["x"]);
           const py = parse(s.params["y"]);
-          if (px != null) style.setProperty?.("--mfm-pos-x" as any, String(px));
-          if (py != null) style.setProperty?.("--mfm-pos-y" as any, String(py));
+          if (px != null) style["--mfm-pos-x"] = String(px);
+          if (py != null) style["--mfm-pos-y"] = String(py);
         }
 
         if (fn === "fg" || fn === "bg") {

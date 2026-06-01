@@ -93,7 +93,8 @@ export function workspaceReducer(state: Workspace, action: WorkspaceAction): Wor
         createdAt: t,
         updatedAt: t,
       };
-      const layout = state.tiles.length === 0 ? { type: "leaf", tileId: tile.id } : buildRowLayout([tile.id, ...state.tiles.map((x) => x.id)]);
+      const layout: LayoutNode =
+        state.tiles.length === 0 ? { type: "leaf", tileId: tile.id } : buildRowLayout([tile.id, ...state.tiles.map((x) => x.id)]);
       return { ...state, tiles: [tile, ...state.tiles], layout, updatedAt: t };
     }
     case "tile/remove": {

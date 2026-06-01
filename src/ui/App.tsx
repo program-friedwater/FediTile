@@ -124,7 +124,8 @@ function WorkspaceScreen() {
             if (!best || area > best.area) best = { id, area };
           });
 
-          const targetId = best?.id ?? workspace.tiles[0].id;
+          const targetId = (((best as any)?.id ?? (workspace.tiles as any[])?.[0]?.id) as TileId | undefined) ?? undefined;
+          if (!targetId) return;
           dispatch({ type: "layout/split", targetId, dir: "row", newTile: tile });
         }}
       />

@@ -12,6 +12,7 @@ import { PostActionModal } from "./PostActionModal";
 import { EmojiPickerModal } from "./EmojiPickerModal";
 import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../misskey/emojis";
 import { ReplyIcon, RepeatIcon, SmileIcon } from "../icons";
+import { MediaLightboxModal, type LightboxItem } from "../components/MediaLightboxModal";
 
 type Props = {
   query: TileQuery;
@@ -32,6 +33,7 @@ export function TileTimeline(props: Props) {
   const [emojiOpenFor, setEmojiOpenFor] = useState<Post | null>(null);
   const [emojiList, setEmojiList] = useState<MisskeyEmoji[]>([]);
   const [cwOpen, setCwOpen] = useState<Record<string, boolean>>({});
+  const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -43,7 +45,8 @@ export function TileTimeline(props: Props) {
 
     (async () => {
       // Only timeline kinds for now
-      const isTimeline = props.query.kind === "home" || props.query.kind === "local" || props.query.kind === "federated";
+      const kind = props.query.kind;
+      const isTimeline = kind === "home" || kind === "local" || kind === "federated";
       if (!isTimeline) {
         setItems(getMockTimelinePage(props.query, 0, PAGE_SIZE));
         setLoaded(PAGE_SIZE);
@@ -56,17 +59,17 @@ export function TileTimeline(props: Props) {
         const account = acc.misskey[0];
         if (!account) throw new Error("No Misskey account connected");
 
-        const page = await fetchTimeline(account, { kind: props.query.kind, limit: PAGE_SIZE });
+        const page = await fetchTimeline(account, { kind, limit: PAGE_SIZE });
         if (canceled) return;
         setMode("misskey");
         setItems(page.items);
         setLoaded(page.items.length);
-        nextCursorRef.current = page.nextCursor?.type === "until_id" ? page.nextCursor.value : null;
+        nextCursorRef.current = page.nextCursor?.type === "max_id" ? page.nextCursor.value : null;
         setLoading(false);
 
         streamRef.current = startTimelineStream(
           account,
-          props.query.kind,
+          kind,
           (p) => {
             setItems((prev) => {
               const key = p.uri ?? p.remoteId;
@@ -101,18 +104,20 @@ export function TileTimeline(props: Props) {
     if (mode === "misskey") {
       (async () => {
         try {
+          const kind = props.query.kind;
+          if (!(kind === "home" || kind === "local" || kind === "federated")) return;
           const acc = await loadAccounts();
           const account = acc.misskey[0];
           if (!account) throw new Error("No Misskey account connected");
           const untilId = nextCursorRef.current;
           const page = await fetchTimeline(account, {
-            kind: props.query.kind as any,
+            kind,
             limit: PAGE_SIZE,
-            cursor: untilId ? { type: "until_id", value: untilId } : undefined,
+            cursor: untilId ? { type: "max_id", value: untilId } : undefined,
           });
           setItems((prev) => prev.concat(page.items));
           setLoaded((n) => n + page.items.length);
-          nextCursorRef.current = page.nextCursor?.type === "until_id" ? page.nextCursor.value : null;
+          nextCursorRef.current = page.nextCursor?.type === "max_id" ? page.nextCursor.value : null;
         } finally {
           setLoading(false);
         }
@@ -154,25 +159,46 @@ export function TileTimeline(props: Props) {
 
                 const renderMedia = (post: Post) => {
                   if (!post.media || post.media.length === 0) return null;
+                  const imageItems: LightboxItem[] = post.media
+                    .filter((m) => m.type === "image" && m.url)
+                    .map((m) => ({ url: m.url!, alt: m.description ?? "" }));
                   return (
                     <div className="mediaGrid">
                       {post.media
                         .filter((m) => m.url)
                         .slice(0, 6)
-                        .map((m, mi) => (
-                          <a key={mi} href={m.url} target="_blank" rel="noreferrer noopener" className="mediaItem">
-                            {m.type === "image" ? (
-                              <img className="mediaThumb" src={m.previewUrl ?? m.url} alt={m.description ?? ""} loading="lazy" decoding="async" />
-                            ) : m.type === "video" ? (
-                              <div className="mediaVideo">
-                                {m.previewUrl ? <img className="mediaThumb" src={m.previewUrl} alt="" loading="lazy" decoding="async" /> : null}
-                                <div className="mediaBadge">VIDEO</div>
-                              </div>
-                            ) : (
-                              <div className="mediaBadge">FILE</div>
-                            )}
-                          </a>
-                        ))}
+                        .map((m, mi) => {
+                          if (m.type === "image" && imageItems.length > 0) {
+                            const idx2 = imageItems.findIndex((x) => x.url === m.url);
+                            return (
+                              <button
+                                key={mi}
+                                type="button"
+                                className="mediaItem mediaButton"
+                                onClick={() => {
+                                  const index = idx2 >= 0 ? idx2 : 0;
+                                  setLightbox({ items: imageItems, index });
+                                }}
+                                aria-label="Open image"
+                              >
+                                <img className="mediaThumb" src={m.previewUrl ?? m.url} alt={m.description ?? ""} loading="lazy" decoding="async" />
+                              </button>
+                            );
+                          }
+
+                          return (
+                            <a key={mi} href={m.url} target="_blank" rel="noreferrer noopener" className="mediaItem">
+                              {m.type === "video" ? (
+                                <div className="mediaVideo">
+                                  {m.previewUrl ? <img className="mediaThumb" src={m.previewUrl} alt="" loading="lazy" decoding="async" /> : null}
+                                  <div className="mediaBadge">VIDEO</div>
+                                </div>
+                              ) : (
+                                <div className="mediaBadge">FILE</div>
+                              )}
+                            </a>
+                          );
+                        })}
                     </div>
                   );
                 };
@@ -460,6 +486,25 @@ export function TileTimeline(props: Props) {
               // ignore
             }
           }
+        }}
+      />
+
+      <MediaLightboxModal
+        isOpen={!!lightbox}
+        items={lightbox?.items ?? []}
+        index={lightbox?.index ?? 0}
+        onClose={() => setLightbox(null)}
+        onPrev={() => {
+          setLightbox((prev) => {
+            if (!prev) return prev;
+            return { ...prev, index: Math.max(0, prev.index - 1) };
+          });
+        }}
+        onNext={() => {
+          setLightbox((prev) => {
+            if (!prev) return prev;
+            return { ...prev, index: Math.min(prev.items.length - 1, prev.index + 1) };
+          });
         }}
       />
     </>
