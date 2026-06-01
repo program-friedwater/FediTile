@@ -181,7 +181,14 @@ export function TileTimeline(props: Props) {
                                 }}
                                 aria-label="Open image"
                               >
-                                <img className="mediaThumb" src={m.previewUrl ?? m.url} alt={m.description ?? ""} loading="lazy" decoding="async" />
+                                <img
+                                  className="mediaThumb"
+                                  src={m.previewUrl ?? m.url}
+                                  alt={m.description ?? ""}
+                                  loading="lazy"
+                                  decoding="async"
+                                  style={m.width && m.height ? ({ aspectRatio: `${m.width} / ${m.height}` } as any) : undefined}
+                                />
                               </button>
                             );
                           }
@@ -190,7 +197,16 @@ export function TileTimeline(props: Props) {
                             <a key={mi} href={m.url} target="_blank" rel="noreferrer noopener" className="mediaItem">
                               {m.type === "video" ? (
                                 <div className="mediaVideo">
-                                  {m.previewUrl ? <img className="mediaThumb" src={m.previewUrl} alt="" loading="lazy" decoding="async" /> : null}
+                                  {m.previewUrl ? (
+                                    <img
+                                      className="mediaThumb"
+                                      src={m.previewUrl}
+                                      alt=""
+                                      loading="lazy"
+                                      decoding="async"
+                                      style={m.width && m.height ? ({ aspectRatio: `${m.width} / ${m.height}` } as any) : undefined}
+                                    />
+                                  ) : null}
                                   <div className="mediaBadge">VIDEO</div>
                                 </div>
                               ) : (
