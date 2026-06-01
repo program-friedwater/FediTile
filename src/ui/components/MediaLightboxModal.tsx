@@ -54,7 +54,9 @@ export function MediaLightboxModal(props: {
             ›
           </button>
         ) : null}
-        {item ? <img className="lightboxImg" src={item.url} alt={item.alt ?? ""} decoding="async" /> : null}
+        <div className="lightboxScroll" aria-label="Media scroll area">
+          {item ? <img className="lightboxImg" src={item.url} alt={item.alt ?? ""} decoding="async" /> : null}
+        </div>
       </div>
     </div>
   );
