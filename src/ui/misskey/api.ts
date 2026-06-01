@@ -44,7 +44,15 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
   const cw = (note?.cw as string | null | undefined) ?? undefined;
   const renote = note?.renote as MisskeyNote | undefined;
   const renotePost = renote ? normalizeMisskeyNote(account, renote) : undefined;
-  const emojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
+  const noteEmojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
+  const userEmojis = (author?.emojis as Record<string, string> | undefined) ?? undefined;
+  const emojis =
+    noteEmojis || userEmojis
+      ? {
+          ...(userEmojis ?? {}),
+          ...(noteEmojis ?? {}),
+        }
+      : undefined;
   const files = Array.isArray(note?.files) ? note.files : [];
   const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
 
