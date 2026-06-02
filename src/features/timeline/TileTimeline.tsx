@@ -113,6 +113,7 @@ export function TileTimeline(props: Props) {
     let canceled = false;
     setLoading(true);
     setMode("mock");
+    setErrorText(null);
     nextCursorRef.current = null;
     streamRef.current?.close();
     streamRef.current = null;
@@ -156,12 +157,13 @@ export function TileTimeline(props: Props) {
             // ignore for now; polling fallback can be added later
           },
         );
-      } catch {
+      } catch (e) {
         if (canceled) return;
-        setMode("mock");
-        setItems(getMockTimelinePage(props.query, 0, PAGE_SIZE));
+        setMode("misskey");
+        setItems([]);
         setEmojiList([]);
-        setLoaded(PAGE_SIZE);
+        setLoaded(0);
+        setErrorText(e instanceof Error ? e.message : String(e));
         setLoading(false);
       }
     })();
@@ -317,6 +319,8 @@ export function TileTimeline(props: Props) {
           />
         )}
       />
+
+      {errorText && items.length === 0 ? <div className="emptyState">{errorText}</div> : null}
 
       {pendingPosts.length > 0 && !isNearTop ? (
         <button
