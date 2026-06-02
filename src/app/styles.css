@@ -1473,3 +1473,46 @@ textarea.input {
   padding: 8px;
   border-radius: 6px;
 }
+
+@media (max-width: 420px) {
+  .tileHeader {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .tileTypeLabel {
+    min-width: 0;
+  }
+
+  .tileMenu {
+    min-width: min(200px, calc(100vw - 40px));
+  }
+
+  .listTitleRow,
+  .replyHeader,
+  .cwLine {
+    flex-wrap: wrap;
+  }
+
+  .listHandleMuted,
+  .replyToHandle {
+    max-width: 100%;
+  }
+
+  .mediaGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pollChoice {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .pollChoiceVotes {
+    white-space: normal;
+  }
+
+  .pollEditorActions {
+    grid-template-columns: 1fr;
+  }
+}
