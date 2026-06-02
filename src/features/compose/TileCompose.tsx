@@ -135,7 +135,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
         <Input value={draft.cw} onChange={(e) => setDraft((d) => ({ ...d, cw: e.target.value }))} placeholder="CW" />
       </FieldRow>
 
-      <FieldRow tight style={{ minHeight: 0 }}>
+      <FieldRow tight style={{ minHeight: 0, flex: 1 }}>
         <Label>Post</Label>
         <EmojiTextarea
           style={{ resize: "none", height: "100%", fontFamily: "inherit", lineHeight: 1.4 }}

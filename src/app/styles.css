@@ -1020,13 +1020,15 @@ a:hover {
 
 .composeLayout {
   height: 100%;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   gap: 8px;
-  grid-template-rows: auto 1fr auto auto;
 }
 
 .composeLayout .fieldRow {
   gap: 4px;
+  min-height: 0;
 }
 
 .composeLayout .fieldRowTight {
