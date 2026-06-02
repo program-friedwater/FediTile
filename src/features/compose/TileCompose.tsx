@@ -38,6 +38,41 @@ export function TileCompose(props: { onPosted?: () => void }) {
     return limit - draft.text.length;
   }, [draft.text.length]);
 
+  const submit = async () => {
+    if (posting || draft.text.trim().length === 0) return;
+    setStatus(null);
+    setPosting(true);
+    try {
+      const accounts = await loadAccounts();
+      const account = accounts.misskey[0];
+      if (!account) throw new Error("No Misskey account connected. Connect from Settings first.");
+
+      const vis =
+        draft.visibility === "public"
+          ? "public"
+          : draft.visibility === "unlisted"
+            ? "home"
+            : draft.visibility === "followers"
+              ? "followers"
+              : "specified";
+
+      await createNote(account, {
+        text: draft.text,
+        cw: draft.cw.trim() ? draft.cw.trim() : undefined,
+        visibility: vis,
+        replyId: draft.replyId,
+      });
+      setDraft((d) => ({ ...d, text: "", replyId: undefined }));
+      setReplyingTo(null);
+      setStatus("Posted.");
+      props.onPosted?.();
+    } catch (e) {
+      setStatus(String(e));
+    } finally {
+      setPosting(false);
+    }
+  };
+
   return (
     <div className="composeLayout" ref={rootRef}>
       <FieldRow>
@@ -51,6 +86,12 @@ export function TileCompose(props: { onPosted?: () => void }) {
           style={{ resize: "none", height: "100%", fontFamily: "inherit", lineHeight: 1.4 }}
           value={draft.text}
           onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              void submit();
+            }
+          }}
           placeholder="Write something…"
         />
       </FieldRow>
@@ -87,39 +128,8 @@ export function TileCompose(props: { onPosted?: () => void }) {
 
         <Button
           disabled={posting || draft.text.trim().length === 0}
-          onClick={async () => {
-            setStatus(null);
-            setPosting(true);
-            try {
-              const accounts = await loadAccounts();
-              const account = accounts.misskey[0];
-              if (!account) throw new Error("No Misskey account connected. Connect from Settings first.");
-
-              const vis =
-                draft.visibility === "public"
-                  ? "public"
-                  : draft.visibility === "unlisted"
-                    ? "home"
-                    : draft.visibility === "followers"
-                      ? "followers"
-                      : "specified";
-
-              await createNote(account, {
-                text: draft.text,
-                cw: draft.cw.trim() ? draft.cw.trim() : undefined,
-                visibility: vis,
-                replyId: draft.replyId,
-              });
-              setDraft((d) => ({ ...d, text: "" }));
-              setReplyingTo(null);
-              setDraft((d) => ({ ...d, replyId: undefined }));
-              setStatus("Posted.");
-              props.onPosted?.();
-            } catch (e) {
-              setStatus(String(e));
-            } finally {
-              setPosting(false);
-            }
+          onClick={() => {
+            void submit();
           }}
           title="Post (mock)"
         >

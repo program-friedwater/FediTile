@@ -33,6 +33,30 @@ export function PostActionModal(props: Props) {
 
   const noteId = (props.post.remoteId as any as string | undefined) ?? undefined;
 
+  const submit = async () => {
+    if (posting || !noteId) return;
+    setPosting(true);
+    setStatus(null);
+    try {
+      const accounts = await loadAccounts();
+      const account = accounts.misskey[0];
+      if (!account) throw new Error("No Misskey account connected.");
+      if (!noteId) throw new Error("Missing note id.");
+
+      if (props.mode === "quote") {
+        await createNote(account, { text, renoteId: noteId, visibility: "public" });
+      } else {
+        await createNote(account, { text, replyId: noteId, visibility: "public" });
+      }
+      setStatus("Posted.");
+      props.onClose();
+    } catch (e) {
+      setStatus(String(e));
+    } finally {
+      setPosting(false);
+    }
+  };
+
   return (
     <Modal
       isOpen={true}
@@ -43,27 +67,8 @@ export function PostActionModal(props: Props) {
           <Button onClick={props.onClose}>Cancel</Button>
           <Button
             disabled={posting || !noteId}
-            onClick={async () => {
-              setPosting(true);
-              setStatus(null);
-              try {
-                const accounts = await loadAccounts();
-                const account = accounts.misskey[0];
-                if (!account) throw new Error("No Misskey account connected.");
-                if (!noteId) throw new Error("Missing note id.");
-
-                if (props.mode === "quote") {
-                  await createNote(account, { text, renoteId: noteId, visibility: "public" });
-                } else {
-                  await createNote(account, { text, replyId: noteId, visibility: "public" });
-                }
-                setStatus("Posted.");
-                props.onClose();
-              } catch (e) {
-                setStatus(String(e));
-              } finally {
-                setPosting(false);
-              }
+            onClick={() => {
+              void submit();
             }}
           >
             {posting ? "Posting…" : "Post"}
@@ -77,6 +82,12 @@ export function PostActionModal(props: Props) {
           style={{ resize: "none", height: 160, fontFamily: "inherit", lineHeight: 1.4 }}
           value={text}
           onChange={(e) => setText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              void submit();
+            }
+          }}
           placeholder={props.mode === "reply" ? "Write a reply…" : "Add a comment…"}
         />
       </FieldRow>
