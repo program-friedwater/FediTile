@@ -182,11 +182,24 @@ export function PostCard(props: {
 
           {p.repostOf ? (
             <>
+              {(() => {
+                const repost = p.repostOf;
+                if (!repost) return null;
+                return (
+                  <>
               {open || !hasCw ? (p.content?.trim() ? renderBody(p) : null) : null}
               <div className="listMeta listRenoteMeta">{p.content?.trim() ? "" : "Renoted"}</div>
-              <div className="renoteBox" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="renoteBox"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  props.onInspectPost?.(repost);
+                }}
+                style={props.onInspectPost ? { cursor: "pointer" } : undefined}
+                title={props.onInspectPost ? "Inspect renote target" : undefined}
+              >
                 <PostCard
-                  post={p.repostOf}
+                  post={repost}
                   emojiList={props.emojiList}
                   cwOpen={props.cwOpen}
                   cwKey={`${props.cwKey}:repost`}
@@ -202,6 +215,9 @@ export function PostCard(props: {
                   embedded={true}
                 />
               </div>
+                  </>
+                );
+              })()}
             </>
           ) : (
             <>
