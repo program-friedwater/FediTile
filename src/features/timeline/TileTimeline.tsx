@@ -132,10 +132,14 @@ export function TileTimeline(props: Props) {
         const account = acc.misskey[0];
         if (!account) throw new Error("No Misskey account connected");
 
-        const page = await fetchTimeline(account, { kind, limit: PAGE_SIZE });
+        const [page, emojis] = await Promise.all([
+          fetchTimeline(account, { kind, limit: PAGE_SIZE }),
+          getEmojis(account).catch(() => [] as MisskeyEmoji[]),
+        ]);
         if (canceled) return;
         setMode("misskey");
         setItems(page.items);
+        setEmojiList(emojis);
         setLoaded(page.items.length);
         nextCursorRef.current = page.nextCursor?.type === "max_id" ? page.nextCursor.value : null;
         setLoading(false);
@@ -155,6 +159,7 @@ export function TileTimeline(props: Props) {
         if (canceled) return;
         setMode("mock");
         setItems(getMockTimelinePage(props.query, 0, PAGE_SIZE));
+        setEmojiList([]);
         setLoaded(PAGE_SIZE);
         setLoading(false);
       }
