@@ -137,8 +137,8 @@ export function PostCard(props: {
   const content = (
     <div
       className={props.embedded ? "postCardEmbedded" : "listItem"}
-      onClick={props.embedded ? undefined : onInspectPost}
-      style={!props.embedded && props.onInspectPost ? { cursor: "pointer" } : undefined}
+      onClick={onInspectPost}
+      style={props.onInspectPost ? { cursor: "pointer" } : undefined}
     >
       <div className="listRow">
         {p.author.avatarUrl ? (
@@ -189,15 +189,7 @@ export function PostCard(props: {
                   <>
               {open || !hasCw ? (p.content?.trim() ? renderBody(p) : null) : null}
               <div className="listMeta listRenoteMeta">{p.content?.trim() ? "" : "Renoted"}</div>
-              <div
-                className="renoteBox"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  props.onInspectPost?.(repost);
-                }}
-                style={props.onInspectPost ? { cursor: "pointer" } : undefined}
-                title={props.onInspectPost ? "Inspect renote target" : undefined}
-              >
+              <div className="renoteBox">
                 <PostCard
                   post={repost}
                   emojiList={props.emojiList}
