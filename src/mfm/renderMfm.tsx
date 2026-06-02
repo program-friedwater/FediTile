@@ -45,6 +45,36 @@ function parseFnSpec(spec: string): { name: string; flags: string[]; params: Rec
   return { name, flags, params };
 }
 
+function findMatchingTagEnd(input: string, start: number, name: "small" | "center") {
+  const open = `<${name}>`;
+  const close = `</${name}>`;
+  let depth = 1;
+  let cursor = start + open.length;
+
+  while (cursor < input.length) {
+    const nextOpen = input.indexOf(open, cursor);
+    const nextClose = input.indexOf(close, cursor);
+    if (nextClose === -1) return null;
+
+    if (nextOpen !== -1 && nextOpen < nextClose) {
+      depth += 1;
+      cursor = nextOpen + open.length;
+      continue;
+    }
+
+    depth -= 1;
+    if (depth === 0) {
+      return {
+        end: nextClose + close.length,
+        inner: input.slice(start + open.length, nextClose),
+      };
+    }
+    cursor = nextClose + close.length;
+  }
+
+  return null;
+}
+
 function parseInline(input: string): Span[] {
   const out: Span[] = [];
   let i = 0;
@@ -61,15 +91,7 @@ function parseInline(input: string): Span[] {
   while (i < input.length) {
     // Simple tag syntax subset: <small>...</small>, <center>...</center>
     if (input[i] === "<") {
-      const tryTag = (name: "small" | "center") => {
-        const open = `<${name}>`;
-        const close = `</${name}>`;
-        if (!startsWith(open)) return null;
-        const end = input.indexOf(close, i + open.length);
-        if (end === -1) return null;
-        const inner = input.slice(i + open.length, end);
-        return { end: end + close.length, inner };
-      };
+      const tryTag = (name: "small" | "center") => (startsWith(`<${name}>`) ? findMatchingTagEnd(input, i, name) : null);
 
       const small = tryTag("small");
       if (small) {
@@ -430,14 +452,9 @@ export function renderMfm(input: string, opts?: { emojiResolver?: (name: string)
     );
   }
 
-  const lines = input.split("\n");
   return (
-    <>
-      {lines.map((line, idx) => (
-        <div key={idx} style={{ whiteSpace: "pre-wrap" }}>
-          {renderSpans(parseInline(line), `l${idx}`, opts?.emojiResolver)}
-        </div>
-      ))}
-    </>
+    <div style={{ whiteSpace: "pre-wrap" }}>
+      {renderSpans(parseInline(input), "mfm", opts?.emojiResolver)}
+    </div>
   );
 }
