@@ -65,6 +65,7 @@ export function SettingsModal(props: Props) {
                     "read:notifications",
                     "write:notes",
                     "write:reactions",
+                    "write:votes",
                     "read:drive",
                     "write:drive",
                   ],
@@ -79,7 +80,7 @@ export function SettingsModal(props: Props) {
           </Button>
         </div>
         <Pill>
-          Requested permissions: read:account, read:notes, read:notifications, write:notes, write:reactions, read/write:drive
+          Requested permissions: read:account, read:notes, read:notifications, write:notes, write:reactions, write:votes, read/write:drive
         </Pill>
         {error ? <Pill tone="danger">{error}</Pill> : null}
       </FieldRow>
