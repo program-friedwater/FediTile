@@ -581,6 +581,54 @@ a:hover {
   object-fit: contain;
 }
 
+.emojiAutocomplete {
+  position: relative;
+  width: 100%;
+}
+
+.emojiAutocompleteMenu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 40;
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.32);
+  max-height: min(240px, 40vh);
+  overflow: auto;
+}
+
+.emojiAutocompleteItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.emojiAutocompleteItem:hover,
+.emojiAutocompleteItemActive {
+  background: color-mix(in oklab, var(--accent) 16%, var(--panel));
+}
+
+.emojiAutocompleteItem span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @keyframes mfmSpin {
   from {
     transform: rotate(0deg);

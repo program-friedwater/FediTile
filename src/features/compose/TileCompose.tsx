@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { loadAccounts } from "../../state/accounts/accountsStore";
 import { createNote } from "../../integrations/misskey/api";
+import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { Button } from "../../components/ui/Button";
-import { FieldRow, Input, Label, Select, Textarea } from "../../components/ui/Field";
+import { EmojiTextarea } from "../../components/ui/EmojiTextarea";
+import { FieldRow, Input, Label, Select } from "../../components/ui/Field";
 import { Pill } from "../../components/ui/Pill";
 import { onComposeIntent, type ComposeIntent } from "../../state/events/composeBus";
 
@@ -18,6 +20,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
   const [posting, setPosting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ComposeIntent | null>(null);
+  const [emojis, setEmojis] = useState<MisskeyEmoji[]>([]);
   const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -30,6 +33,24 @@ export function TileCompose(props: { onPosted?: () => void }) {
         (el as HTMLTextAreaElement | null)?.focus();
       });
     });
+  }, []);
+
+  useEffect(() => {
+    let canceled = false;
+    (async () => {
+      try {
+        const accounts = await loadAccounts();
+        const account = accounts.misskey[0];
+        if (!account) return;
+        const next = await getEmojis(account);
+        if (!canceled) setEmojis(next);
+      } catch {
+        if (!canceled) setEmojis([]);
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
   }, []);
 
   const remaining = useMemo(() => {
@@ -82,15 +103,13 @@ export function TileCompose(props: { onPosted?: () => void }) {
 
       <FieldRow tight style={{ minHeight: 0 }}>
         <Label>Post</Label>
-        <Textarea
+        <EmojiTextarea
           style={{ resize: "none", height: "100%", fontFamily: "inherit", lineHeight: 1.4 }}
           value={draft.text}
-          onChange={(e) => setDraft((d) => ({ ...d, text: e.target.value }))}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              void submit();
-            }
+          onChange={(value) => setDraft((d) => ({ ...d, text: value }))}
+          emojis={emojis}
+          onSubmitShortcut={() => {
+            void submit();
           }}
           placeholder="Write something…"
         />

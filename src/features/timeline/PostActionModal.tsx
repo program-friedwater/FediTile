@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Post } from "../../domain/types";
+import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { loadAccounts } from "../../state/accounts/accountsStore";
 import { createNote } from "../../integrations/misskey/api";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { FieldRow, Label, Textarea } from "../../components/ui/Field";
+import { EmojiTextarea } from "../../components/ui/EmojiTextarea";
+import { FieldRow, Label } from "../../components/ui/Field";
 import { Pill } from "../../components/ui/Pill";
 
 type Props = {
@@ -17,6 +19,7 @@ export function PostActionModal(props: Props) {
   const [text, setText] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
+  const [emojis, setEmojis] = useState<MisskeyEmoji[]>([]);
 
   const title = useMemo(() => {
     if (!props.mode) return "";
@@ -28,6 +31,25 @@ export function PostActionModal(props: Props) {
     setText("");
     setStatus(null);
   }, [props.mode, props.post?.uri]);
+
+  useEffect(() => {
+    if (!props.mode) return;
+    let canceled = false;
+    (async () => {
+      try {
+        const accounts = await loadAccounts();
+        const account = accounts.misskey[0];
+        if (!account) return;
+        const next = await getEmojis(account);
+        if (!canceled) setEmojis(next);
+      } catch {
+        if (!canceled) setEmojis([]);
+      }
+    })();
+    return () => {
+      canceled = true;
+    };
+  }, [props.mode]);
 
   if (!props.mode || !props.post) return null;
 
@@ -78,15 +100,13 @@ export function PostActionModal(props: Props) {
     >
       <FieldRow>
         <Label>Text</Label>
-        <Textarea
+        <EmojiTextarea
           style={{ resize: "none", height: 160, fontFamily: "inherit", lineHeight: 1.4 }}
           value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-              e.preventDefault();
-              void submit();
-            }
+          onChange={setText}
+          emojis={emojis}
+          onSubmitShortcut={() => {
+            void submit();
           }}
           placeholder={props.mode === "reply" ? "Write a reply…" : "Add a comment…"}
         />
