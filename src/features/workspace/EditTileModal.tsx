@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { Tile, TileQuery, TileSize } from "../../state/workspace/tileTypes";
 import { tileKindLabel } from "../../state/workspace/tileTypes";
 import { Modal } from "../../components/ui/Modal";
@@ -22,7 +22,7 @@ export function EditTileModal(props: Props) {
   const [q, setQ] = useState(tile?.query.kind === "search" ? tile.query.q : "feditile");
 
   // Re-seed state when opening / tile changes
-  useMemo(() => {
+  useEffect(() => {
     if (!props.isOpen || !tile) return;
     setKind(tile.query.kind);
     setTitle(tile.title);
