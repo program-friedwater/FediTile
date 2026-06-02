@@ -3,6 +3,38 @@ import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 
 export type MisskeyNote = any;
 
+function normalizeEmojiMap(input: unknown): Record<string, string> | undefined {
+  if (!input) return undefined;
+
+  if (Array.isArray(input)) {
+    const entries = input.flatMap((emoji) => {
+      const name = typeof emoji?.name === "string" ? emoji.name : "";
+      const url =
+        typeof emoji?.url === "string"
+          ? emoji.url
+          : typeof emoji?.host === "string" && typeof emoji?.name === "string"
+            ? `https://${emoji.host}/emoji/${emoji.name}.webp`
+            : "";
+      return name && url ? [[name, url] as const] : [];
+    });
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  }
+
+  if (typeof input === "object") {
+    const source = input as Record<string, unknown>;
+    const entries = Object.entries(source).flatMap(([name, value]) => {
+      if (typeof value === "string" && value) return [[name, value] as const];
+      if (value && typeof value === "object" && typeof (value as { url?: unknown }).url === "string") {
+        return [[name, String((value as { url: string }).url)] as const];
+      }
+      return [];
+    });
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  }
+
+  return undefined;
+}
+
 function hostFromInstanceUrl(instanceUrl: string): string {
   const raw = String(instanceUrl ?? "").trim();
   if (!raw) return "";
@@ -63,8 +95,8 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
   const renotePost = renote ? normalizeMisskeyNote(account, renote) : undefined;
   const reply = note?.reply as MisskeyNote | undefined;
   const replyPost = reply ? normalizeMisskeyNote(account, reply) : undefined;
-  const noteEmojis = (note?.emojis as Record<string, string> | undefined) ?? undefined;
-  const userEmojis = (author?.emojis as Record<string, string> | undefined) ?? undefined;
+  const noteEmojis = normalizeEmojiMap(note?.emojis);
+  const userEmojis = normalizeEmojiMap(author?.emojis);
   const emojis =
     noteEmojis || userEmojis
       ? {
