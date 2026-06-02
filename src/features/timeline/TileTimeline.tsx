@@ -43,6 +43,21 @@ export function TileTimeline(props: Props) {
   const [prependCompensation, setPrependCompensation] = useState({ key: 0, px: 0 });
   const [isNearTop, setIsNearTop] = useState(true);
   const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
+  const itemsRef = useRef(items);
+  const isNearTopRef = useRef(isNearTop);
+  const pendingPostsRef = useRef(pendingPosts);
+
+  useEffect(() => {
+    itemsRef.current = items;
+  }, [items]);
+
+  useEffect(() => {
+    isNearTopRef.current = isNearTop;
+  }, [isNearTop]);
+
+  useEffect(() => {
+    pendingPostsRef.current = pendingPosts;
+  }, [pendingPosts]);
 
   const prependPost = (post: Post) => {
     const key = post.uri ?? post.remoteId;
@@ -61,14 +76,14 @@ export function TileTimeline(props: Props) {
     const key = post.uri ?? post.remoteId;
     setPendingPosts((prev) => {
       if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
-      if (key && items.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
+      if (key && itemsRef.current.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
       return [post, ...prev].slice(0, 100);
     });
   };
 
   const flushPendingPosts = () => {
-    if (pendingPosts.length === 0) return;
-    const posts = pendingPosts.slice().reverse();
+    if (pendingPostsRef.current.length === 0) return;
+    const posts = pendingPostsRef.current.slice().reverse();
     setPendingPosts([]);
     let insertedCount = 0;
     setItems((prev) => {
@@ -88,12 +103,6 @@ export function TileTimeline(props: Props) {
       }));
     }
   };
-
-  useEffect(() => {
-    if (isNearTop && pendingPosts.length > 0) {
-      flushPendingPosts();
-    }
-  }, [isNearTop, pendingPosts]);
 
   useEffect(() => {
     return onAccountsChanged(() => setAccountsEpoch((n) => n + 1));
@@ -135,7 +144,7 @@ export function TileTimeline(props: Props) {
           account,
           kind,
           (p) => {
-            if (isNearTop) prependPost(p);
+            if (isNearTopRef.current) prependPost(p);
             else queuePendingPost(p);
           },
           () => {
