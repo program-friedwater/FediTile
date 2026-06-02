@@ -6,7 +6,7 @@ import { TileCompose } from "../compose/TileCompose";
 import { TileInspect } from "../inspect/TileInspect";
 import { TileNotifications } from "../notifications/TileNotifications";
 import { IconButton } from "../../components/ui/Button";
-import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon } from "../../components/icons/icons";
+import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon, SocialIcon } from "../../components/icons/icons";
 
 type Props = {
   tile: Tile;
@@ -63,7 +63,7 @@ export function TileView(props: Props) {
       case "local":
         return <LocalIcon />;
       case "social":
-        return <HomeIcon />;
+        return <SocialIcon />;
       case "federated":
         return <GlobeIcon />;
       case "notifications":

@@ -73,6 +73,17 @@ export function LocalIcon() {
   );
 }
 
+export function SocialIcon() {
+  return (
+    <Icon>
+      <path d="M16 8a4 4 0 1 0-8 0" />
+      <path d="M6 20a6 6 0 0 1 12 0" />
+      <path d="M18.5 10.5a3 3 0 1 1 2.5 5" />
+      <path d="M3 15.5a3 3 0 0 1 2.5-5" />
+    </Icon>
+  );
+}
+
 export function ReplyIcon() {
   return (
     <Icon>
