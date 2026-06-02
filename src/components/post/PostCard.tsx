@@ -2,6 +2,7 @@ import type { Post } from "../../domain/types";
 import { renderMfm } from "../../mfm/renderMfm";
 import { buildEmojiResolver, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons/icons";
+import { PostPoll } from "./PostPoll";
 
 export type LightboxItem = { url: string; alt?: string };
 
@@ -37,6 +38,7 @@ export function PostCard(props: {
   onRenoteMenu?: (post: Post) => void;
   onReact?: (post: Post) => void;
   onToggleReaction?: (post: Post, reactionKey: string) => void;
+  onVotePoll?: (post: Post, choice: number) => void;
 
   onOpenLightbox?: (items: LightboxItem[], index: number) => void;
 
@@ -128,6 +130,7 @@ export function PostCard(props: {
       <div className="listMeta">
         {post.contentFormat === "mfm" ? renderMfm(post.content, { emojiResolver: buildEmojiResolver({ emojis: post.customEmojis, global: props.emojiList }) }) : post.content}
       </div>
+      {post.poll ? <PostPoll poll={post.poll} onVote={props.onVotePoll ? (choice) => props.onVotePoll?.(post, choice) : undefined} /> : null}
       {renderMedia(post)}
     </>
   );
@@ -202,6 +205,7 @@ export function PostCard(props: {
                   onRenoteMenu={props.onRenoteMenu}
                   onReact={props.onReact}
                   onToggleReaction={props.onToggleReaction}
+                  onVotePoll={props.onVotePoll}
                   onOpenLightbox={props.onOpenLightbox}
                   hideActions={true}
                   embedded={true}

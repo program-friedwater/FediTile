@@ -6,7 +6,7 @@ import { VirtualList } from "./VirtualList";
 import { loadAccounts, onAccountsChanged } from "../../state/accounts/accountsStore";
 import { fetchTimeline } from "../../integrations/misskey/api";
 import { startTimelineStream } from "../../integrations/misskey/streaming";
-import { reactToNote, createNote, showNote, unreactToNote } from "../../integrations/misskey/api";
+import { reactToNote, createNote, showNote, unreactToNote, voteOnPoll } from "../../integrations/misskey/api";
 import { PostActionModal } from "./PostActionModal";
 import { EmojiPickerModal } from "./EmojiPickerModal";
 import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
@@ -16,6 +16,7 @@ import { emitComposeIntent, postToReplyIntent } from "../../state/events/compose
 import { loadWorkspace } from "../../state/workspace/workspaceStore";
 import { emitInspectIntent } from "../../state/events/inspectBus";
 import { PostCard } from "../../components/post/PostCard";
+import { replacePostInList } from "../../components/post/postTree";
 
 type Props = {
   query: TileQuery;
@@ -296,6 +297,21 @@ export function TileTimeline(props: Props) {
                 } catch {
                   // ignore
                 }
+              }
+            }}
+            onVotePoll={async (post, choice) => {
+              if (mode !== "misskey") return;
+              const noteId = (post.remoteId as any as string | undefined) ?? "";
+              if (!noteId) return;
+              try {
+                const accounts = await loadAccounts();
+                const account = accounts.misskey[0];
+                if (!account) throw new Error("No Misskey account connected");
+                await voteOnPoll(account, { noteId, choice });
+                const fresh = await showNote(account, { noteId });
+                setItems((prev) => replacePostInList(prev, noteId, fresh));
+              } catch (e) {
+                setErrorText(e instanceof Error ? e.message : String(e));
               }
             }}
           />

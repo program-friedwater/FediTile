@@ -106,6 +106,18 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
       : undefined;
   const files = Array.isArray(note?.files) ? note.files : [];
   const myReaction = (note?.myReaction as string | null | undefined) ?? undefined;
+  const poll =
+    note?.poll && Array.isArray(note.poll.choices)
+      ? {
+          multiple: note.poll.multiple === true,
+          expiresAt: typeof note.poll.expiresAt === "string" ? note.poll.expiresAt : undefined,
+          choices: note.poll.choices.map((choice: any) => ({
+            text: String(choice?.text ?? ""),
+            votes: Number(choice?.votes) || 0,
+            isVoted: choice?.isVoted === true ? true : undefined,
+          })),
+        }
+      : undefined;
 
   const instanceHost = hostFromInstanceUrl(account.instanceUrl);
   const username = (author?.username as string | undefined) ?? "unknown";
@@ -133,6 +145,7 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
             height: typeof f?.properties?.height === "number" ? f.properties.height : undefined,
           }))
         : undefined,
+    poll,
     tags: Array.isArray(note?.tags) ? note.tags : undefined,
     reactions: note?.reactions
       ? Object.entries(note.reactions).map(([key, count]) => ({ key, count: Number(count) || 0 }))
@@ -255,6 +268,11 @@ export async function createNote(
     visibility?: "public" | "home" | "followers" | "specified";
     replyId?: string;
     renoteId?: string;
+    poll?: {
+      choices: string[];
+      multiple?: boolean;
+      expiresAt?: string;
+    };
   },
 ): Promise<Post> {
   const body: Record<string, unknown> = {};
@@ -263,6 +281,13 @@ export async function createNote(
   if (args.visibility) body.visibility = args.visibility;
   if (args.replyId) body.replyId = args.replyId;
   if (args.renoteId) body.renoteId = args.renoteId;
+  if (args.poll && args.poll.choices.length >= 2) {
+    body.poll = {
+      choices: args.poll.choices,
+      multiple: args.poll.multiple === true,
+      expiresAt: args.poll.expiresAt,
+    };
+  }
   const note = await postJson<MisskeyNote>(account, "notes/create", body);
   // Some instances respond with { createdNote: {...} }
   const created = (note as any)?.createdNote ?? note;
@@ -271,6 +296,10 @@ export async function createNote(
 
 export async function reactToNote(account: MisskeyAccount, args: { noteId: string; reaction: string }): Promise<void> {
   await postJson(account, "notes/reactions/create", { noteId: args.noteId, reaction: args.reaction });
+}
+
+export async function voteOnPoll(account: MisskeyAccount, args: { noteId: string; choice: number }): Promise<void> {
+  await postJson(account, "notes/polls/vote", { noteId: args.noteId, choice: args.choice });
 }
 
 export async function unreactToNote(account: MisskeyAccount, args: { noteId: string }): Promise<void> {

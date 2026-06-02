@@ -1377,6 +1377,88 @@ textarea.input {
   overflow: hidden;
 }
 
+.pollCard {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.pollMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.pollChoices {
+  display: grid;
+  gap: 6px;
+}
+
+.pollChoice {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--panel) 72%, transparent);
+  padding: 10px 12px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pollChoiceBar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+  pointer-events: none;
+}
+
+.pollChoiceLabel,
+.pollChoiceVotes {
+  position: relative;
+  z-index: 1;
+}
+
+.pollChoiceVotes {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pollChoiceVoted {
+  border-color: color-mix(in oklab, var(--accent) 50%, var(--border));
+}
+
+.composePollToggleRow,
+.pollEditor,
+.pollEditorOptions,
+.pollEditorActions {
+  display: grid;
+  gap: 8px;
+}
+
+.pollEditorOptions {
+  margin-top: 2px;
+}
+
+.pollEditorActions {
+  grid-template-columns: repeat(2, minmax(0, max-content));
+}
+
+.pollCheckbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+
 .inspectCard {
   border: none;
   background: transparent;

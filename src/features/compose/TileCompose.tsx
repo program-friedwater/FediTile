@@ -13,10 +13,22 @@ type Draft = {
   text: string;
   visibility: "public" | "unlisted" | "followers" | "direct";
   replyId?: string;
+  pollEnabled: boolean;
+  pollChoices: string[];
+  pollMultiple: boolean;
+  pollExpiresHours: string;
 };
 
 export function TileCompose(props: { onPosted?: () => void }) {
-  const [draft, setDraft] = useState<Draft>({ cw: "", text: "", visibility: "public" });
+  const [draft, setDraft] = useState<Draft>({
+    cw: "",
+    text: "",
+    visibility: "public",
+    pollEnabled: false,
+    pollChoices: ["", ""],
+    pollMultiple: false,
+    pollExpiresHours: "",
+  });
   const [posting, setPosting] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ComposeIntent | null>(null);
@@ -59,8 +71,11 @@ export function TileCompose(props: { onPosted?: () => void }) {
     return limit - draft.text.length;
   }, [draft.text.length]);
 
+  const pollChoices = useMemo(() => draft.pollChoices.map((choice) => choice.trim()).filter(Boolean), [draft.pollChoices]);
+  const canSubmit = draft.text.trim().length > 0 || (draft.pollEnabled && pollChoices.length >= 2);
+
   const submit = async () => {
-    if (posting || draft.text.trim().length === 0) return;
+    if (posting || !canSubmit) return;
     setStatus(null);
     setPosting(true);
     try {
@@ -82,8 +97,27 @@ export function TileCompose(props: { onPosted?: () => void }) {
         cw: draft.cw.trim() ? draft.cw.trim() : undefined,
         visibility: vis,
         replyId: draft.replyId,
+        poll:
+          draft.pollEnabled && pollChoices.length >= 2
+            ? {
+                choices: pollChoices,
+                multiple: draft.pollMultiple,
+                expiresAt:
+                  draft.pollExpiresHours.trim() && Number(draft.pollExpiresHours) > 0
+                    ? new Date(Date.now() + Number(draft.pollExpiresHours) * 60 * 60 * 1000).toISOString()
+                    : undefined,
+              }
+            : undefined,
       });
-      setDraft((d) => ({ ...d, text: "", replyId: undefined }));
+      setDraft((d) => ({
+        ...d,
+        text: "",
+        replyId: undefined,
+        pollEnabled: false,
+        pollChoices: ["", ""],
+        pollMultiple: false,
+        pollExpiresHours: "",
+      }));
       setReplyingTo(null);
       setStatus("Posted.");
       props.onPosted?.();
@@ -114,6 +148,77 @@ export function TileCompose(props: { onPosted?: () => void }) {
           placeholder="Write something…"
         />
       </FieldRow>
+
+      <div className="composePollToggleRow">
+        <Button
+          onClick={() =>
+            setDraft((d) => ({
+              ...d,
+              pollEnabled: !d.pollEnabled,
+              pollChoices: d.pollEnabled ? ["", ""] : d.pollChoices,
+            }))
+          }
+        >
+          {draft.pollEnabled ? "Remove poll" : "Add poll"}
+        </Button>
+      </div>
+
+      {draft.pollEnabled ? (
+        <div className="pollEditor">
+          {draft.pollChoices.map((choice, index) => (
+            <FieldRow key={index}>
+              <Label>{`Choice ${index + 1}`}</Label>
+              <Input
+                value={choice}
+                onChange={(e) =>
+                  setDraft((d) => ({
+                    ...d,
+                    pollChoices: d.pollChoices.map((item, i) => (i === index ? e.target.value : item)),
+                  }))
+                }
+                placeholder={`Choice ${index + 1}`}
+              />
+            </FieldRow>
+          ))}
+
+          <div className="pollEditorActions">
+            <Button
+              disabled={draft.pollChoices.length >= 10}
+              onClick={() => setDraft((d) => ({ ...d, pollChoices: d.pollChoices.concat("") }))}
+            >
+              Add choice
+            </Button>
+            <Button
+              disabled={draft.pollChoices.length <= 2}
+              onClick={() => setDraft((d) => ({ ...d, pollChoices: d.pollChoices.slice(0, -1) }))}
+            >
+              Remove choice
+            </Button>
+          </div>
+
+          <div className="pollEditorOptions">
+            <label className="pollCheckbox">
+              <input
+                type="checkbox"
+                checked={draft.pollMultiple}
+                onChange={(e) => setDraft((d) => ({ ...d, pollMultiple: e.target.checked }))}
+              />
+              <span>Allow multiple choices</span>
+            </label>
+            <FieldRow>
+              <Label>Ends after hours</Label>
+              <Input
+                type="number"
+                min="1"
+                step="1"
+                value={draft.pollExpiresHours}
+                onChange={(e) => setDraft((d) => ({ ...d, pollExpiresHours: e.target.value }))}
+                placeholder="Optional"
+              />
+            </FieldRow>
+          </div>
+        </div>
+      ) : null}
 
       {replyingTo ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -146,7 +251,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
         </div>
 
         <Button
-          disabled={posting || draft.text.trim().length === 0}
+          disabled={posting || !canSubmit}
           onClick={() => {
             void submit();
           }}

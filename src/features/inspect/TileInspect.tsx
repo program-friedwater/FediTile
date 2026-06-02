@@ -5,11 +5,12 @@ import { Pill } from "../../components/ui/Pill";
 import { renderMfm } from "../../mfm/renderMfm";
 import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { loadAccounts } from "../../state/accounts/accountsStore";
-import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote } from "../../integrations/misskey/api";
+import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote, voteOnPoll } from "../../integrations/misskey/api";
 import { EmojiPickerModal } from "../timeline/EmojiPickerModal";
 import { PostActionModal } from "../timeline/PostActionModal";
 import { RepeatIcon, ReplyIcon, SmileIcon } from "../../components/icons/icons";
 import { PostCard } from "../../components/post/PostCard";
+import { replacePostInTree } from "../../components/post/postTree";
 
 type ViewState =
   | { kind: "empty" }
@@ -144,6 +145,20 @@ export function TileInspect() {
                 else await reactToNote(account, { noteId, reaction: reactionKey });
                 const fresh = await showNote(account, { noteId });
                 setState((prev) => (prev.kind === "post" ? { ...prev, post: fresh, loadedAt: nowIso() } : prev));
+              } catch (e) {
+                setErrorText(e instanceof Error ? e.message : String(e));
+              }
+            }}
+            onVotePoll={async (post, choice) => {
+              const noteId = (post.remoteId as any as string | undefined) ?? "";
+              if (!noteId) return;
+              try {
+                const accounts = await loadAccounts();
+                const account = accounts.misskey[0];
+                if (!account) throw new Error("No Misskey account connected");
+                await voteOnPoll(account, { noteId, choice });
+                const fresh = await showNote(account, { noteId });
+                setState((prev) => (prev.kind === "post" ? { ...prev, post: replacePostInTree(prev.post, noteId, fresh), loadedAt: nowIso() } : prev));
               } catch (e) {
                 setErrorText(e instanceof Error ? e.message : String(e));
               }

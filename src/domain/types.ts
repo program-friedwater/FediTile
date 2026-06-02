@@ -60,6 +60,18 @@ export type MediaAttachment = {
   height?: number;
 };
 
+export type PollChoice = {
+  text: string;
+  votes: number;
+  isVoted?: boolean;
+};
+
+export type Poll = {
+  multiple: boolean;
+  expiresAt?: string;
+  choices: PollChoice[];
+};
+
 export type Post = {
   uri?: Uri;
   remoteId?: RemoteId;
@@ -78,6 +90,7 @@ export type Post = {
   visibility?: Visibility;
 
   media?: MediaAttachment[];
+  poll?: Poll;
   tags?: string[];
 
   replyToUri?: Uri;
