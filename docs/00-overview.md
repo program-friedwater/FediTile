@@ -15,6 +15,8 @@
 - `docs/30-connectors.md`: connector interface/spec
 - `docs/40-tiles.md`: tile UX/state spec
 - `docs/50-mvp.md`: MVP scope and phases
+- `docs/70-current-status.md`: current implementation status
+- `docs/80-source-tree.md`: directory-by-directory and file-by-file source tree reference
 
 ## Writing rule
 - Please write Markdown docs in English going forward.
