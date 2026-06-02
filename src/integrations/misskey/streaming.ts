@@ -11,7 +11,7 @@ function randomId() {
 
 export function startTimelineStream(
   account: MisskeyAccount,
-  kind: "home" | "local" | "federated",
+  kind: "home" | "local" | "social" | "federated",
   onNote: (p: Post) => void,
   onError?: (err: string) => void,
 ): { close: () => void } {
@@ -22,7 +22,15 @@ export function startTimelineStream(
   const subId = `sub_${randomId()}`;
 
   const channel =
-    kind === "home" ? "homeTimeline" : kind === "local" ? "localTimeline" : kind === "federated" ? "globalTimeline" : "homeTimeline";
+    kind === "home"
+      ? "homeTimeline"
+      : kind === "local"
+        ? "localTimeline"
+        : kind === "social"
+          ? "hybridTimeline"
+          : kind === "federated"
+            ? "globalTimeline"
+            : "homeTimeline";
 
   ws.onopen = () => {
     const msg = { type: "connect", body: { channel, id: subId, params: {} } satisfies ConnectBody };

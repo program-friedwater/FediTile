@@ -14,6 +14,7 @@ export type RemoteId = string & { readonly __brand: "RemoteId" };
 export type TimelineKind =
   | "home"
   | "local"
+  | "social"
   | "federated"
   | "list"
   | "hashtag"

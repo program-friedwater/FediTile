@@ -239,10 +239,8 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
   if (untilId) body.untilId = untilId;
 
   let endpoint = "notes/timeline";
-  if (req.kind === "local") {
-    endpoint = "notes/local-timeline";
-    body.withRenotes = false;
-  }
+  if (req.kind === "local") endpoint = "notes/local-timeline";
+  if (req.kind === "social") endpoint = "notes/hybrid-timeline";
   if (req.kind === "federated") endpoint = "notes/global-timeline";
   if (req.kind === "home") endpoint = "notes/timeline";
 

@@ -62,6 +62,8 @@ export function TileView(props: Props) {
         return <HomeIcon />;
       case "local":
         return <LocalIcon />;
+      case "social":
+        return <HomeIcon />;
       case "federated":
         return <GlobeIcon />;
       case "notifications":

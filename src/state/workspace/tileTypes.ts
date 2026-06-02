@@ -7,6 +7,7 @@ export type TileSize = "s" | "m" | "l";
 export type TileQuery =
   | { kind: "home" }
   | { kind: "local" }
+  | { kind: "social" }
   | { kind: "federated" }
   | { kind: "hashtag"; tag: string }
   | { kind: "search"; q: string }
@@ -44,6 +45,8 @@ export function tileKindLabel(kind: TimelineKind | TileQuery["kind"]): string {
       return "Home";
     case "local":
       return "Local";
+    case "social":
+      return "Social";
     case "federated":
       return "Federated";
     case "hashtag":

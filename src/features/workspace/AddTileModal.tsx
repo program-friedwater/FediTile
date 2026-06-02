@@ -31,6 +31,7 @@ export function AddTileModal(props: Props) {
         return { kind };
       case "home":
       case "local":
+      case "social":
       case "federated":
       case "notifications":
         return { kind };
@@ -67,6 +68,7 @@ export function AddTileModal(props: Props) {
         <Select value={kind} onChange={(e) => setKind(e.target.value as TileQuery["kind"])}>
               <option value="home">Home</option>
               <option value="local">Local</option>
+              <option value="social">Social</option>
               <option value="federated">Federated</option>
               <option value="notifications">Notifications</option>
               <option value="compose">Compose</option>
