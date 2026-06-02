@@ -1023,12 +1023,14 @@ a:hover {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow-y: auto;
   gap: 8px;
 }
 
 .composeLayout .fieldRow {
   gap: 4px;
   min-height: 0;
+  flex: 0 0 auto;
 }
 
 .composeLayout .fieldRowTight {
