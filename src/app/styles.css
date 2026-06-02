@@ -1362,12 +1362,17 @@ textarea.input {
   font-size: 12px;
   color: var(--muted);
   font-weight: 700;
+  min-width: 0;
 }
 
 .replyToHandle {
   color: var(--text);
   opacity: 0.9;
   font-weight: 800;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .replySnippet {
