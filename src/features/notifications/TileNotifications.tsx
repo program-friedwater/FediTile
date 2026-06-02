@@ -116,6 +116,7 @@ export function TileNotifications() {
       <VirtualList
         className="tileScroller"
         items={items}
+        itemKey={(item, index) => String(item.remoteId ?? `${item.createdAt}-${index}`)}
         estimateItemHeight={ESTIMATED_ITEM_HEIGHT}
         overscan={6}
         endThresholdPx={700}

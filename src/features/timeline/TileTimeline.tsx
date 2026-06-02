@@ -206,6 +206,7 @@ export function TileTimeline(props: Props) {
       <VirtualList
         className="tileScroller"
         items={items}
+        itemKey={(p, idx) => String(p.uri ?? (p.remoteId as any as string) ?? `${p.createdAt}-${idx}`)}
         estimateItemHeight={ESTIMATED_ITEM_HEIGHT}
         overscan={8}
         endThresholdPx={900}
