@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadAccounts, removeMisskeyAccount, type MisskeyAccount } from "./accounts/accountsStore";
-import { startMiAuth } from "./misskey/miauth";
-import { Modal } from "./components/Modal";
-import { Button } from "./components/Button";
-import { FieldRow, Input, Label } from "./components/Field";
-import { Pill } from "./components/Pill";
+import { loadAccounts, removeMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
+import { startMiAuth } from "../../integrations/misskey/miauth";
+import { Modal } from "../../components/ui/Modal";
+import { Button } from "../../components/ui/Button";
+import { FieldRow, Input, Label } from "../../components/ui/Field";
+import { Pill } from "../../components/ui/Pill";
 
 type Props = {
   isOpen: boolean;

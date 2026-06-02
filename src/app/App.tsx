@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { WorkspaceProvider, useWorkspace } from "./tiles/WorkspaceProvider";
-import { AddTileModal } from "./tiles/AddTileModal";
-import { createDefaultWorkspace } from "./tiles/workspaceReducer";
-import type { TileId } from "./tiles/tileTypes";
+import { WorkspaceProvider, useWorkspace } from "../state/workspace/WorkspaceProvider";
+import { AddTileModal } from "../features/workspace/AddTileModal";
+import { createDefaultWorkspace } from "../state/workspace/workspaceReducer";
+import type { TileId } from "../state/workspace/tileTypes";
 import { useElementSize } from "./hooks/useElementSize";
-import { TiledLayout } from "./tiles/TiledLayout";
-import { SettingsModal } from "./SettingsModal";
-import { handleMisskeyAuthCallback } from "./misskey/authCallback";
-import { EditTileModal } from "./tiles/EditTileModal";
-import type { Tile } from "./tiles/tileTypes";
+import { TiledLayout } from "../features/workspace/TiledLayout";
+import { SettingsModal } from "../features/settings/SettingsModal";
+import { handleMisskeyAuthCallback } from "../integrations/misskey/authCallback";
+import { EditTileModal } from "../features/workspace/EditTileModal";
+import type { Tile } from "../state/workspace/tileTypes";
 
 function WorkspaceScreen() {
   const { workspace, dispatch } = useWorkspace();

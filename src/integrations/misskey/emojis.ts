@@ -1,4 +1,4 @@
-import type { MisskeyAccount } from "../accounts/accountsStore";
+import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 import { idbGet, idbSet } from "../storage/idb";
 
 export type MisskeyEmoji = {
@@ -47,4 +47,3 @@ export function buildEmojiResolver(args: { emojis?: Record<string, string>; glob
   for (const e of args.global ?? []) globalMap.set(e.name, e.url);
   return (name: string): string | undefined => local[name] ?? globalMap.get(name);
 }
-

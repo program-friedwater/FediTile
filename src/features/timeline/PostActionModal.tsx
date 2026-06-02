@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Post } from "../../domain/types";
-import { loadAccounts } from "../accounts/accountsStore";
-import { createNote } from "../misskey/api";
-import { Modal } from "../components/Modal";
-import { Button } from "../components/Button";
-import { FieldRow, Label, Textarea } from "../components/Field";
-import { Pill } from "../components/Pill";
+import { loadAccounts } from "../../state/accounts/accountsStore";
+import { createNote } from "../../integrations/misskey/api";
+import { Modal } from "../../components/ui/Modal";
+import { Button } from "../../components/ui/Button";
+import { FieldRow, Label, Textarea } from "../../components/ui/Field";
+import { Pill } from "../../components/ui/Pill";
 
 type Props = {
   mode: "quote" | "reply" | null;

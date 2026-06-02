@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import type { Tile, TileSize } from "./tileTypes";
-import { tileKindLabel } from "./tileTypes";
-import { TileTimeline } from "./TileTimeline";
-import { TileCompose } from "./TileCompose";
-import { TileInspect } from "./TileInspect";
-import { IconButton } from "../components/Button";
-import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon } from "../icons";
+import type { Tile, TileSize } from "../../state/workspace/tileTypes";
+import { tileKindLabel } from "../../state/workspace/tileTypes";
+import { TileTimeline } from "../timeline/TileTimeline";
+import { TileCompose } from "../compose/TileCompose";
+import { TileInspect } from "../inspect/TileInspect";
+import { IconButton } from "../../components/ui/Button";
+import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon } from "../../components/icons/icons";
 
 type Props = {
   tile: Tile;

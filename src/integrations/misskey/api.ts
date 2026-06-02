@@ -1,5 +1,5 @@
 import type { Cursor, Post, TimelinePage, TimelineRequest, Uri } from "../../domain/types";
-import type { MisskeyAccount } from "../accounts/accountsStore";
+import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 
 export type MisskeyNote = any;
 

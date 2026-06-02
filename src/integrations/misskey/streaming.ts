@@ -1,5 +1,5 @@
 import type { Post } from "../../domain/types";
-import type { MisskeyAccount } from "../accounts/accountsStore";
+import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 import { normalizeMisskeyNote } from "./api";
 
 type ConnectBody = { channel: string; id: string; params?: Record<string, unknown> };

@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadAccounts } from "../accounts/accountsStore";
-import { createNote } from "../misskey/api";
-import { Button } from "../components/Button";
-import { FieldRow, Input, Label, Select, Textarea } from "../components/Field";
-import { Pill } from "../components/Pill";
-import { onComposeIntent, type ComposeIntent } from "../state/composeBus";
+import { loadAccounts } from "../../state/accounts/accountsStore";
+import { createNote } from "../../integrations/misskey/api";
+import { Button } from "../../components/ui/Button";
+import { FieldRow, Input, Label, Select, Textarea } from "../../components/ui/Field";
+import { Pill } from "../../components/ui/Pill";
+import { onComposeIntent, type ComposeIntent } from "../../state/events/composeBus";
 
 type Draft = {
   cw: string;

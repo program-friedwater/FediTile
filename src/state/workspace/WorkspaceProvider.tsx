@@ -28,4 +28,3 @@ export function WorkspaceProvider(props: { children: React.ReactNode }) {
 
   return <WorkspaceContext.Provider value={value}>{props.children}</WorkspaceContext.Provider>;
 }
-

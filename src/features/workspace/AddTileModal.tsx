@@ -1,35 +1,23 @@
 import { useMemo, useState } from "react";
-import type { Tile, TileQuery, TileSize } from "./tileTypes";
-import { tileKindLabel } from "./tileTypes";
-import { Modal } from "../components/Modal";
-import { Button } from "../components/Button";
-import { FieldRow, Input, Label, Select } from "../components/Field";
-import { Pill } from "../components/Pill";
+import type { TileQuery, TileSize } from "../../state/workspace/tileTypes";
+import { tileKindLabel } from "../../state/workspace/tileTypes";
+import { Modal } from "../../components/ui/Modal";
+import { Button } from "../../components/ui/Button";
+import { FieldRow, Input, Label, Select } from "../../components/ui/Field";
+import { Pill } from "../../components/ui/Pill";
 
 type Props = {
   isOpen: boolean;
-  tile: Tile | null;
   onClose: () => void;
-  onSave: (next: { title: string; query: TileQuery; size: TileSize }) => void;
+  onCreate: (tile: { title: string; query: TileQuery; size: TileSize }) => void;
 };
 
-export function EditTileModal(props: Props) {
-  const tile = props.tile;
-  const [kind, setKind] = useState<TileQuery["kind"]>(tile?.query.kind ?? "home");
-  const [title, setTitle] = useState(tile?.title ?? "");
-  const [size, setSize] = useState<TileSize>(tile?.size ?? "m");
-  const [tag, setTag] = useState(tile?.query.kind === "hashtag" ? tile.query.tag : "news");
-  const [q, setQ] = useState(tile?.query.kind === "search" ? tile.query.q : "feditile");
-
-  // Re-seed state when opening / tile changes
-  useMemo(() => {
-    if (!props.isOpen || !tile) return;
-    setKind(tile.query.kind);
-    setTitle(tile.title);
-    setSize(tile.size);
-    if (tile.query.kind === "hashtag") setTag(tile.query.tag);
-    if (tile.query.kind === "search") setQ(tile.query.q);
-  }, [props.isOpen, tile?.id]);
+export function AddTileModal(props: Props) {
+  const [kind, setKind] = useState<TileQuery["kind"]>("home");
+  const [title, setTitle] = useState("");
+  const [size, setSize] = useState<TileSize>("m");
+  const [tag, setTag] = useState("news");
+  const [q, setQ] = useState("feditile");
 
   const query: TileQuery = useMemo(() => {
     switch (kind) {
@@ -53,23 +41,23 @@ export function EditTileModal(props: Props) {
 
   const effectiveTitle = title.trim() || tileKindLabel(kind);
 
-  if (!props.isOpen || !tile) return null;
+  if (!props.isOpen) return null;
 
   return (
     <Modal
       isOpen={props.isOpen}
-      title="Edit tile"
+      title="Add a tile"
       onClose={props.onClose}
       footer={
         <>
           <Button onClick={props.onClose}>Cancel</Button>
           <Button
             onClick={() => {
-              props.onSave({ title: effectiveTitle, query, size });
+              props.onCreate({ title: effectiveTitle, query, size });
               props.onClose();
             }}
           >
-            Save
+            Add
           </Button>
         </>
       }

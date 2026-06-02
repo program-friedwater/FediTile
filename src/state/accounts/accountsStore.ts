@@ -1,4 +1,4 @@
-import { idbGet, idbSet } from "../storage/idb";
+import { idbGet, idbSet } from "../../integrations/storage/idb";
 
 export type MisskeyAccount = {
   id: string;

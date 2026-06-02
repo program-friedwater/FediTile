@@ -1,22 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Post } from "../../domain/types";
-import type { TileQuery } from "./tileTypes";
+import type { TileQuery } from "../../state/workspace/tileTypes";
 import { getMockTimelinePage } from "./mockData";
 import { VirtualList } from "./VirtualList";
-import { loadAccounts, onAccountsChanged } from "../accounts/accountsStore";
-import { fetchTimeline } from "../misskey/api";
-import { startTimelineStream } from "../misskey/streaming";
-import { reactToNote, createNote, showNote, unreactToNote } from "../misskey/api";
+import { loadAccounts, onAccountsChanged } from "../../state/accounts/accountsStore";
+import { fetchTimeline } from "../../integrations/misskey/api";
+import { startTimelineStream } from "../../integrations/misskey/streaming";
+import { reactToNote, createNote, showNote, unreactToNote } from "../../integrations/misskey/api";
 import { PostActionModal } from "./PostActionModal";
 import { EmojiPickerModal } from "./EmojiPickerModal";
-import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../misskey/emojis";
-import { ReplyIcon, RepeatIcon, SmileIcon } from "../icons";
-import { MediaLightboxModal, type LightboxItem } from "../components/MediaLightboxModal";
-import { Modal } from "../components/Modal";
-import { emitComposeIntent, postToReplyIntent } from "../state/composeBus";
-import { loadWorkspace } from "./workspaceStore";
-import { emitInspectIntent } from "../state/inspectBus";
-import { PostCard } from "../components/PostCard";
+import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
+import { MediaLightboxModal, type LightboxItem } from "../../components/post/MediaLightboxModal";
+import { Modal } from "../../components/ui/Modal";
+import { emitComposeIntent, postToReplyIntent } from "../../state/events/composeBus";
+import { loadWorkspace } from "../../state/workspace/workspaceStore";
+import { emitInspectIntent } from "../../state/events/inspectBus";
+import { PostCard } from "../../components/post/PostCard";
 
 type Props = {
   query: TileQuery;

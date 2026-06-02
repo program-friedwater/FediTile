@@ -1,4 +1,4 @@
-import { upsertMisskeyAccount, type MisskeyAccount } from "../accounts/accountsStore";
+import { upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
 
 function normalizeInstanceUrl(raw: string): string {
   const t = raw.trim();

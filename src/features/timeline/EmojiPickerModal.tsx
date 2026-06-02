@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import type { MisskeyEmoji } from "../misskey/emojis";
-import { Modal } from "../components/Modal";
-import { Button } from "../components/Button";
-import { FieldRow, Input, Label } from "../components/Field";
+import type { MisskeyEmoji } from "../../integrations/misskey/emojis";
+import { Modal } from "../../components/ui/Modal";
+import { Button } from "../../components/ui/Button";
+import { FieldRow, Input, Label } from "../../components/ui/Field";
 
 type Props = {
   isOpen: boolean;

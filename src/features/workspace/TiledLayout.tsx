@@ -1,5 +1,5 @@
-import type { LayoutNode } from "./layoutTypes";
-import type { Tile, TileId } from "./tileTypes";
+import type { LayoutNode } from "../../state/workspace/layoutTypes";
+import type { Tile, TileId } from "../../state/workspace/tileTypes";
 import { TileView } from "./TileView";
 
 type Props = {

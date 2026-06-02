@@ -1,5 +1,5 @@
 import type { Post } from "../../domain/types";
-import type { TileQuery } from "./tileTypes";
+import type { TileQuery } from "../../state/workspace/tileTypes";
 
 function hashString(s: string) {
   let h = 2166136261;

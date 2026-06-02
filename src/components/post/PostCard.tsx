@@ -1,7 +1,7 @@
 import type { Post } from "../../domain/types";
-import { renderMfm } from "../mfm/renderMfm";
-import { buildEmojiResolver, type MisskeyEmoji } from "../misskey/emojis";
-import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons";
+import { renderMfm } from "../../mfm/renderMfm";
+import { buildEmojiResolver, type MisskeyEmoji } from "../../integrations/misskey/emojis";
+import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons/icons";
 
 export type LightboxItem = { url: string; alt?: string };
 

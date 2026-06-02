@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Author, Post } from "../../domain/types";
-import { onInspectIntent, type InspectIntent } from "../state/inspectBus";
-import { Pill } from "../components/Pill";
-import { renderMfm } from "../mfm/renderMfm";
-import { buildEmojiResolver, type MisskeyEmoji } from "../misskey/emojis";
-import { getEmojis } from "../misskey/emojis";
-import { loadAccounts } from "../accounts/accountsStore";
-import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote } from "../misskey/api";
-import { EmojiPickerModal } from "./EmojiPickerModal";
-import { PostActionModal } from "./PostActionModal";
-import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons";
-import { PostCard } from "../components/PostCard";
+import { onInspectIntent, type InspectIntent } from "../../state/events/inspectBus";
+import { Pill } from "../../components/ui/Pill";
+import { renderMfm } from "../../mfm/renderMfm";
+import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
+import { loadAccounts } from "../../state/accounts/accountsStore";
+import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote } from "../../integrations/misskey/api";
+import { EmojiPickerModal } from "../timeline/EmojiPickerModal";
+import { PostActionModal } from "../timeline/PostActionModal";
+import { RepeatIcon, ReplyIcon, SmileIcon } from "../../components/icons/icons";
+import { PostCard } from "../../components/post/PostCard";
 
 type ViewState =
   | { kind: "empty" }
