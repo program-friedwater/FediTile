@@ -226,7 +226,10 @@ async function postJson<T>(account: MisskeyAccount, endpoint: string, body: Reco
     }
     throw new Error(`Misskey API failed: ${endpoint} (${res.status} ${res.statusText})${details}`);
   }
-  return (await res.json()) as T;
+  if (res.status === 204) return undefined as T;
+  const text = await res.text();
+  if (!text.trim()) return undefined as T;
+  return JSON.parse(text) as T;
 }
 
 export async function fetchTimeline(account: MisskeyAccount, req: TimelineRequest): Promise<TimelinePage> {
