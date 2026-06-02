@@ -41,6 +41,8 @@ export function TileTimeline(props: Props) {
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
   const [prependCompensation, setPrependCompensation] = useState({ key: 0, px: 0 });
+  const [isNearTop, setIsNearTop] = useState(true);
+  const [pendingPosts, setPendingPosts] = useState<Post[]>([]);
 
   const prependPost = (post: Post) => {
     const key = post.uri ?? post.remoteId;
@@ -54,6 +56,44 @@ export function TileTimeline(props: Props) {
       setPrependCompensation((state) => ({ key: state.key + 1, px: ESTIMATED_ITEM_HEIGHT }));
     }
   };
+
+  const queuePendingPost = (post: Post) => {
+    const key = post.uri ?? post.remoteId;
+    setPendingPosts((prev) => {
+      if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
+      if (key && items.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
+      return [post, ...prev].slice(0, 100);
+    });
+  };
+
+  const flushPendingPosts = () => {
+    if (pendingPosts.length === 0) return;
+    const posts = pendingPosts.slice().reverse();
+    setPendingPosts([]);
+    let insertedCount = 0;
+    setItems((prev) => {
+      let next = prev;
+      for (const post of posts) {
+        const key = post.uri ?? post.remoteId;
+        if (key && next.some((x) => (x.uri ?? x.remoteId) === key)) continue;
+        next = [post, ...next].slice(0, 500);
+        insertedCount += 1;
+      }
+      return next;
+    });
+    if (insertedCount > 0) {
+      setPrependCompensation((state) => ({
+        key: state.key + 1,
+        px: insertedCount * ESTIMATED_ITEM_HEIGHT,
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (isNearTop && pendingPosts.length > 0) {
+      flushPendingPosts();
+    }
+  }, [isNearTop, pendingPosts]);
 
   useEffect(() => {
     return onAccountsChanged(() => setAccountsEpoch((n) => n + 1));
@@ -95,7 +135,8 @@ export function TileTimeline(props: Props) {
           account,
           kind,
           (p) => {
-            prependPost(p);
+            if (isNearTop) prependPost(p);
+            else queuePendingPost(p);
           },
           () => {
             // ignore for now; polling fallback can be added later
@@ -161,6 +202,7 @@ export function TileTimeline(props: Props) {
         endThresholdPx={900}
         prependCompensationKey={prependCompensation.key}
         prependCompensationPx={prependCompensation.px}
+        onTopLockChange={setIsNearTop}
         onNearEnd={loadMore}
         renderItem={(p, idx) => (
           <PostCard
@@ -244,6 +286,19 @@ export function TileTimeline(props: Props) {
           />
         )}
       />
+
+      {pendingPosts.length > 0 && !isNearTop ? (
+        <button
+          type="button"
+          className="timelinePendingBtn"
+          onClick={() => {
+            setIsNearTop(true);
+            flushPendingPosts();
+          }}
+        >
+          {pendingPosts.length} new post{pendingPosts.length === 1 ? "" : "s"}
+        </button>
+      ) : null}
 
       <PostActionModal mode={modal.mode} post={modal.post} onClose={() => setModal({ mode: null, post: null })} />
 

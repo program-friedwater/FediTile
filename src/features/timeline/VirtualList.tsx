@@ -11,6 +11,7 @@ type Props<T> = {
   prependCompensationKey?: number;
   prependCompensationPx?: number;
   topLockThresholdPx?: number;
+  onTopLockChange?: (nearTop: boolean) => void;
 };
 
 export function VirtualList<T>(props: Props<T>) {
@@ -28,8 +29,10 @@ export function VirtualList<T>(props: Props<T>) {
     const ro = new ResizeObserver(() => setViewportHeight(el.clientHeight));
     ro.observe(el);
     setViewportHeight(el.clientHeight);
+    nearTopRef.current = el.scrollTop <= topLockThresholdPx;
+    props.onTopLockChange?.(nearTopRef.current);
     return () => ro.disconnect();
-  }, []);
+  }, [props, topLockThresholdPx]);
 
   const totalHeight = props.items.length * props.estimateItemHeight;
 
@@ -68,6 +71,7 @@ export function VirtualList<T>(props: Props<T>) {
       onScroll={(e) => {
         const nextScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
         nearTopRef.current = nextScrollTop <= topLockThresholdPx;
+        props.onTopLockChange?.(nearTopRef.current);
         setScrollTop(nextScrollTop);
       }}
     >

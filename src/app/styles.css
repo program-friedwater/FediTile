@@ -765,6 +765,26 @@ a:hover {
   overflow: auto;
 }
 
+.timelinePendingBtn {
+  position: absolute;
+  top: 44px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  border: 1px solid var(--border);
+  background: color-mix(in oklab, var(--panel-strong) 92%, transparent);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.timelinePendingBtn:hover {
+  background: var(--panel-strong);
+}
+
 .tileResizer {
   position: absolute;
   top: 0;
