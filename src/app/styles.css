@@ -978,7 +978,7 @@ a:hover {
 .input,
 .select {
   width: 100%;
-  border-radius: 12px;
+  border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
@@ -987,7 +987,7 @@ a:hover {
 }
 
 textarea.input {
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .input:focus,
@@ -1268,6 +1268,7 @@ textarea.input {
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
+  border-radius: 6px;
 }
 
 .postCardEmbedded {
@@ -1281,6 +1282,7 @@ textarea.input {
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
+  border-radius: 6px;
 }
 
 .replyHeader {
@@ -1317,4 +1319,5 @@ textarea.input {
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
+  border-radius: 6px;
 }
