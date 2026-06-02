@@ -8,12 +8,17 @@ type Props<T> = {
   renderItem: (item: T, index: number) => React.ReactNode;
   onNearEnd?: () => void;
   endThresholdPx?: number;
+  prependCompensationKey?: number;
+  prependCompensationPx?: number;
+  topLockThresholdPx?: number;
 };
 
 export function VirtualList<T>(props: Props<T>) {
   const overscan = props.overscan ?? 6;
   const endThresholdPx = props.endThresholdPx ?? 800;
+  const topLockThresholdPx = props.topLockThresholdPx ?? 24;
   const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const nearTopRef = useRef(true);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [scrollTop, setScrollTop] = useState(0);
 
@@ -46,12 +51,24 @@ export function VirtualList<T>(props: Props<T>) {
     if (remaining < endThresholdPx) props.onNearEnd();
   }, [endThresholdPx, props, scrollTop, viewportHeight]);
 
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const compensation = props.prependCompensationPx ?? 0;
+    if (compensation <= 0) return;
+    if (nearTopRef.current) return;
+    el.scrollTop += compensation;
+    setScrollTop(el.scrollTop);
+  }, [props.prependCompensationKey, props.prependCompensationPx]);
+
   return (
     <div
       ref={scrollerRef}
       className={props.className}
       onScroll={(e) => {
-        setScrollTop((e.currentTarget as HTMLDivElement).scrollTop);
+        const nextScrollTop = (e.currentTarget as HTMLDivElement).scrollTop;
+        nearTopRef.current = nextScrollTop <= topLockThresholdPx;
+        setScrollTop(nextScrollTop);
       }}
     >
       <div style={{ height: totalHeight }}>
@@ -62,4 +79,3 @@ export function VirtualList<T>(props: Props<T>) {
     </div>
   );
 }
-

@@ -22,6 +22,7 @@ type Props = {
 };
 
 const PAGE_SIZE = 40;
+const ESTIMATED_ITEM_HEIGHT = 90;
 
 export function TileTimeline(props: Props) {
   const queryKey = useMemo(() => JSON.stringify(props.query), [props.query]);
@@ -39,6 +40,20 @@ export function TileTimeline(props: Props) {
   const [cwOpen, setCwOpen] = useState<Record<string, boolean>>({});
   const [lightbox, setLightbox] = useState<{ items: LightboxItem[]; index: number } | null>(null);
   const [errorText, setErrorText] = useState<string | null>(null);
+  const [prependCompensation, setPrependCompensation] = useState({ key: 0, px: 0 });
+
+  const prependPost = (post: Post) => {
+    const key = post.uri ?? post.remoteId;
+    let inserted = false;
+    setItems((prev) => {
+      if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
+      inserted = true;
+      return [post, ...prev].slice(0, 500);
+    });
+    if (inserted) {
+      setPrependCompensation((state) => ({ key: state.key + 1, px: ESTIMATED_ITEM_HEIGHT }));
+    }
+  };
 
   useEffect(() => {
     return onAccountsChanged(() => setAccountsEpoch((n) => n + 1));
@@ -80,12 +95,7 @@ export function TileTimeline(props: Props) {
           account,
           kind,
           (p) => {
-            setItems((prev) => {
-              const key = p.uri ?? p.remoteId;
-              if (!key) return [p, ...prev];
-              if (prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
-              return [p, ...prev].slice(0, 500);
-            });
+            prependPost(p);
           },
           () => {
             // ignore for now; polling fallback can be added later
@@ -146,9 +156,11 @@ export function TileTimeline(props: Props) {
       <VirtualList
         className="tileScroller"
         items={items}
-        estimateItemHeight={90}
+        estimateItemHeight={ESTIMATED_ITEM_HEIGHT}
         overscan={8}
         endThresholdPx={900}
+        prependCompensationKey={prependCompensation.key}
+        prependCompensationPx={prependCompensation.px}
         onNearEnd={loadMore}
         renderItem={(p, idx) => (
           <PostCard
@@ -250,11 +262,7 @@ export function TileTimeline(props: Props) {
               if (!account) return;
               try {
                 const created = await createNote(account, { renoteId: noteId, visibility: "public" });
-                setItems((prev) => {
-                  const key = created.uri ?? created.remoteId;
-                  if (key && prev.some((x) => (x.uri ?? x.remoteId) === key)) return prev;
-                  return [created, ...prev].slice(0, 500);
-                });
+                prependPost(created);
               } catch (e) {
                 setErrorText(e instanceof Error ? e.message : String(e));
               }
