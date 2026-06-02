@@ -1,4 +1,4 @@
-import type { Cursor, Post, TimelinePage, TimelineRequest, Uri } from "../../domain/types";
+import type { AccountId, Author, Cursor, Notification, NotificationType, Post, TimelinePage, TimelineRequest, Uri } from "../../domain/types";
 import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 
 export type MisskeyNote = any;
@@ -37,6 +37,23 @@ function noteUri(account: MisskeyAccount, note: MisskeyNote): Uri | undefined {
   return (`${account.instanceUrl}/notes/${id}` as Uri);
 }
 
+function accountIdFromMisskeyAccount(account: MisskeyAccount): AccountId {
+  return account.id as AccountId;
+}
+
+function normalizeMisskeyAuthor(account: MisskeyAccount, user: any): Author {
+  const instanceHost = hostFromInstanceUrl(account.instanceUrl);
+  const username = (user?.username as string | undefined) ?? "unknown";
+  const host = (user?.host as string | null | undefined) ?? instanceHost;
+  return {
+    remoteId: (user?.id as any) ?? undefined,
+    handle: host ? `@${username}@${host}` : `@${username}`,
+    displayName: user?.name ?? username,
+    avatarUrl: user?.avatarUrl ?? undefined,
+    url: user?.host ? `${account.instanceUrl}/@${username}@${user.host}` : `${account.instanceUrl}/@${username}`,
+  };
+}
+
 export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote): Post {
   const createdAt = (note?.createdAt as string | undefined) ?? new Date().toISOString();
   const author = note?.user ?? {};
@@ -64,16 +81,11 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
 
   return {
     serviceId: "misskey",
-    accountId: undefined,
+    accountId: accountIdFromMisskeyAccount(account),
     uri: noteUri(account, note),
     remoteId: (note?.id as any) ?? undefined,
     createdAt,
-    author: {
-      handle: host ? `@${username}@${host}` : `@${username}`,
-      displayName: author?.name ?? username,
-      avatarUrl: author?.avatarUrl ?? undefined,
-      url: author?.host ? `${account.instanceUrl}/@${username}@${author.host}` : `${account.instanceUrl}/@${username}`,
-    },
+    author: normalizeMisskeyAuthor(account, author),
     contentFormat: "mfm",
     content: text || (renotePost ? "" : ""),
     cw,
@@ -100,6 +112,43 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
     replyToUri: replyPost?.uri,
     replyTo: replyPost,
     url: noteUri(account, note),
+  };
+}
+
+function normalizeNotificationType(rawType: string | undefined): NotificationType {
+  switch (rawType) {
+    case "mention":
+      return "mention";
+    case "reply":
+      return "reply";
+    case "renote":
+    case "quote":
+      return "repost";
+    case "reaction":
+      return "reaction";
+    case "follow":
+      return "follow";
+    case "pollVote":
+    case "pollEnded":
+      return "poll";
+    case "achievementEarned":
+      return "system";
+    default:
+      return "unknown";
+  }
+}
+
+export function normalizeMisskeyNotification(account: MisskeyAccount, notification: any): Notification {
+  return {
+    serviceId: "misskey",
+    accountId: accountIdFromMisskeyAccount(account),
+    uri: undefined,
+    remoteId: (notification?.id as any) ?? undefined,
+    type: normalizeNotificationType(notification?.type as string | undefined),
+    createdAt: (notification?.createdAt as string | undefined) ?? new Date().toISOString(),
+    actor: notification?.user ? normalizeMisskeyAuthor(account, notification.user) : undefined,
+    post: notification?.note ? normalizeMisskeyNote(account, notification.note) : undefined,
+    rawType: notification?.type as string | undefined,
   };
 }
 
@@ -149,6 +198,20 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
   const notes = await postJson<MisskeyNote[]>(account, endpoint, body);
   const items = notes.map((n) => normalizeMisskeyNote(account, n));
   const nextCursor: Cursor | undefined = items.length > 0 ? { type: "max_id", value: String(notes[notes.length - 1]?.id) } : undefined;
+  return { items, nextCursor };
+}
+
+export async function fetchNotifications(
+  account: MisskeyAccount,
+  args: { limit?: number; cursor?: Cursor },
+): Promise<{ items: Notification[]; nextCursor?: Cursor }> {
+  const limit = typeof args.limit === "number" ? args.limit : 40;
+  const body: Record<string, unknown> = { limit, includeTypes: ["follow", "mention", "reply", "renote", "quote", "reaction", "pollVote", "pollEnded"] };
+  if (args.cursor?.type === "since_id") body.sinceId = args.cursor.value;
+  if (args.cursor?.type === "max_id") body.untilId = args.cursor.value;
+  const itemsRaw = await postJson<any[]>(account, "i/notifications", body);
+  const items = itemsRaw.map((item) => normalizeMisskeyNotification(account, item));
+  const nextCursor: Cursor | undefined = items.length > 0 ? { type: "max_id", value: String(itemsRaw[itemsRaw.length - 1]?.id) } : undefined;
   return { items, nextCursor };
 }
 

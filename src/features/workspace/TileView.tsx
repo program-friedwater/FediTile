@@ -4,6 +4,7 @@ import { tileKindLabel } from "../../state/workspace/tileTypes";
 import { TileTimeline } from "../timeline/TileTimeline";
 import { TileCompose } from "../compose/TileCompose";
 import { TileInspect } from "../inspect/TileInspect";
+import { TileNotifications } from "../notifications/TileNotifications";
 import { IconButton } from "../../components/ui/Button";
 import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon } from "../../components/icons/icons";
 
@@ -277,6 +278,8 @@ export function TileView(props: Props) {
           <TileCompose />
         ) : props.tile.query.kind === "inspect" ? (
           <TileInspect />
+        ) : props.tile.query.kind === "notifications" ? (
+          <TileNotifications />
         ) : (
           <TileTimeline query={props.tile.query} />
         )}
