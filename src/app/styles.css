@@ -1030,7 +1030,6 @@ a:hover {
 .composeLayout .fieldRow {
   gap: 4px;
   min-height: 0;
-  flex: 0 0 auto;
 }
 
 .composeLayout .fieldRowTight {
