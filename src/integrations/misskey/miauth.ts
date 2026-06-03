@@ -55,7 +55,13 @@ export async function finishMiAuth(args: {
   if (!token) throw new Error("MiAuth did not return a token");
 
   const now = new Date().toISOString();
-  const id = `misskey:${instanceUrl}:${user?.id ?? token.slice(0, 8)}`;
+  const stableUserKey =
+    typeof user?.id === "string" && user.id
+      ? user.id
+      : typeof user?.username === "string" && user.username
+        ? `username:${user.username.toLowerCase()}`
+        : `token:${token.slice(0, 16)}`;
+  const id = `misskey:${instanceUrl}:${stableUserKey}`;
   const account: MisskeyAccount = {
     id,
     serviceId: "misskey",
