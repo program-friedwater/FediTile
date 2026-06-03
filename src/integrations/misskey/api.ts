@@ -1,5 +1,6 @@
 import type { AccountId, Author, Cursor, Notification, NotificationType, Post, TimelinePage, TimelineRequest, Uri } from "../../domain/types";
 import type { MisskeyAccount } from "../../state/accounts/accountsStore";
+import { misskeyHttpFetch } from "./http";
 
 export type MisskeyNote = any;
 export type MisskeyTrendTag = { tag: string; usersCount?: number; chart?: number[] };
@@ -200,11 +201,7 @@ export function normalizeMisskeyNotification(account: MisskeyAccount, notificati
 
 async function postJson<T>(account: MisskeyAccount, endpoint: string, body: Record<string, unknown>): Promise<T> {
   const url = `${account.instanceUrl}/api/${endpoint}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ i: account.accessToken, ...body }),
-  });
+  const res = await misskeyHttpFetch(url, { body: JSON.stringify({ i: account.accessToken, ...body }) });
   if (!res.ok) {
     let details = "";
     try {
@@ -251,7 +248,10 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
 }
 
 export async function fetchTrendingTags(account: MisskeyAccount): Promise<MisskeyTrendTag[]> {
-  const res = await fetch(`${account.instanceUrl}/api/hashtags/trend`);
+  const res = await misskeyHttpFetch(`${account.instanceUrl}/api/hashtags/trend`, {
+    method: "POST",
+    body: JSON.stringify({ limit: 20 }),
+  });
   if (!res.ok) throw new Error(`Misskey API failed: hashtags/trend (${res.status} ${res.statusText})`);
   return (await res.json()) as MisskeyTrendTag[];
 }

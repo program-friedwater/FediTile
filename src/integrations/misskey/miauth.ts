@@ -1,4 +1,6 @@
 import { upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
+import { pushAuthTrace } from "./authTrace";
+import { misskeyHttpFetch } from "./http";
 
 function normalizeInstanceUrl(raw: string): string {
   const t = raw.trim();
@@ -33,6 +35,7 @@ export function startMiAuth(args: MiAuthStartArgs): { instanceUrl: string; sessi
   // MiAuth expects a single `permission` query parameter with comma-separated values.
   // Some servers may ignore multiple `permission=` parameters.
   u.searchParams.set("permission", args.permissions.join(","));
+  pushAuthTrace("start", `${instanceUrl} session=${session}`);
 
   return { instanceUrl, session, authorizeUrl: u.toString() };
 }
@@ -42,22 +45,17 @@ export async function finishMiAuth(args: {
   session: string;
 }): Promise<MisskeyAccount> {
   const instanceUrl = normalizeInstanceUrl(args.instanceUrl);
+  pushAuthTrace("finish:start", `${instanceUrl} session=${args.session}`);
   const url = `${instanceUrl}/api/miauth/${args.session}/check`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: "{}",
-  });
+  const res = await misskeyHttpFetch(url, { body: "{}" });
+  pushAuthTrace("finish:check", `status=${res.status}`);
   if (!res.ok) throw new Error(`MiAuth check failed: ${res.status}`);
   const json = (await res.json()) as any;
   const token = json?.token as string | undefined;
   if (!token) throw new Error("MiAuth did not return a token");
 
-  const profileRes = await fetch(`${instanceUrl}/api/i`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ i: token }),
-  });
+  const profileRes = await misskeyHttpFetch(`${instanceUrl}/api/i`, { body: JSON.stringify({ i: token }) });
+  pushAuthTrace("finish:profile", `status=${profileRes.status}`);
   if (!profileRes.ok) throw new Error(`Failed to resolve authorized account: ${profileRes.status}`);
   const user = (await profileRes.json()) as any;
 
@@ -81,5 +79,6 @@ export async function finishMiAuth(args: {
     updatedAt: now,
   };
   await upsertMisskeyAccount(account);
+  pushAuthTrace("finish:stored", account.id);
   return account;
 }
