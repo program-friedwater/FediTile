@@ -48,14 +48,44 @@ function emitAccountsChanged() {
   }
 }
 
-export async function loadAccounts(): Promise<AccountsState> {
-  const v = await idbGet<AccountsState>(KEY);
-  if (v && v.version === 1 && Array.isArray(v.misskey)) return v;
+function emptyAccounts(): AccountsState {
   return { version: 1, misskey: [] };
+}
+
+function readLocalAccounts(): AccountsState | null {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AccountsState;
+    return parsed && parsed.version === 1 && Array.isArray(parsed.misskey) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function mergeAccounts(a: AccountsState | null | undefined, b: AccountsState | null | undefined): AccountsState {
+  const merged = new Map<string, MisskeyAccount>();
+  for (const account of [...(a?.misskey ?? []), ...(b?.misskey ?? [])]) merged.set(account.id, account);
+  const misskey = [...merged.values()].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+  return {
+    version: 1,
+    misskey,
+    defaultAccountId: a?.defaultAccountId ?? b?.defaultAccountId ?? misskey[0]?.id,
+  };
+}
+
+export async function loadAccounts(): Promise<AccountsState> {
+  const idbAccounts = await idbGet<AccountsState>(KEY);
+  const merged = mergeAccounts(
+    idbAccounts && idbAccounts.version === 1 && Array.isArray(idbAccounts.misskey) ? idbAccounts : null,
+    readLocalAccounts(),
+  );
+  return merged.misskey.length > 0 ? merged : emptyAccounts();
 }
 
 export async function saveAccounts(next: AccountsState): Promise<void> {
   await idbSet(KEY, next);
+  localStorage.setItem(KEY, JSON.stringify(next));
   emitAccountsChanged();
 }
 
