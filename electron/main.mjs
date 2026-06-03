@@ -42,13 +42,13 @@ function startAuthServer() {
       res.end(`<!doctype html><html><body style="background:#0d1117;color:#e6edf3;font-family:system-ui;padding:24px"><h1>FediTile</h1><p>Authentication received. You can return to the app.</p></body></html>`);
     });
     authServer.once("error", reject);
-    authServer.listen(0, "127.0.0.1", () => {
+    authServer.listen(0, () => {
       const address = authServer?.address();
       if (!address || typeof address === "string") {
         reject(new Error("Failed to resolve auth callback server address"));
         return;
       }
-      authCallbackBaseUrl = `http://127.0.0.1:${address.port}/auth/misskey`;
+      authCallbackBaseUrl = `http://localhost:${address.port}/auth/misskey`;
       resolve(authCallbackBaseUrl);
     });
   });
