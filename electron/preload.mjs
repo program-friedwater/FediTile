@@ -1,10 +1,24 @@
 import { contextBridge, ipcRenderer } from "electron";
 
+let pendingAuthUrl = null;
+const authListeners = new Set();
+
+ipcRenderer.on("feditile:auth-callback", (_event, url) => {
+  pendingAuthUrl = url;
+  for (const listener of authListeners) listener(url);
+});
+
 contextBridge.exposeInMainWorld("feditileDesktop", {
   platform: "electron",
+  getPendingAuthCallback() {
+    return pendingAuthUrl;
+  },
+  clearPendingAuthCallback() {
+    pendingAuthUrl = null;
+  },
   onAuthCallback(listener) {
-    const handler = (_event, url) => listener(url);
-    ipcRenderer.on("feditile:auth-callback", handler);
-    return () => ipcRenderer.removeListener("feditile:auth-callback", handler);
+    authListeners.add(listener);
+    if (pendingAuthUrl) listener(pendingAuthUrl);
+    return () => authListeners.delete(listener);
   },
 });
