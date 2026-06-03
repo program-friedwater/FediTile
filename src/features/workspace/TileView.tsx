@@ -148,7 +148,15 @@ export function TileView(props: Props) {
           }}
         />
       ) : null}
-      <div className="tileHeader">
+      <div
+        className="tileHeader"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          props.onActivate();
+          setMenuOpen(true);
+        }}
+      >
         <div className="tileTypeLabel">
           {kindIcon}
           <span>{kindLabel}</span>
