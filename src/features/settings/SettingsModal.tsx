@@ -23,6 +23,9 @@ export function SettingsModal(props: Props) {
   const [traceLines, setTraceLines] = useState<string[]>([]);
 
   const callbackUrl = useMemo(() => {
+    if (window.feditileDesktop?.platform === "electron") {
+      return "feditile://auth/misskey";
+    }
     const current = new URL(window.location.href);
     if (current.protocol === "http:" || current.protocol === "https:") {
       return new URL("/auth/misskey", current.origin).toString();

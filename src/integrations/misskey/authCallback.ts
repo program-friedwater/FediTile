@@ -1,6 +1,8 @@
 import { finishMiAuth } from "./miauth";
+import { pushAuthTrace } from "./authTrace";
 
 const AUTH_COMPLETE_EVENT = "feditile:misskey-auth-complete";
+const AUTH_RESULT_PREFIX = "feditile:misskey-auth-result:";
 
 function parseHash(hash: string): { path: string; params: URLSearchParams } {
   const h = hash.startsWith("#") ? hash.slice(1) : hash;
@@ -8,11 +10,12 @@ function parseHash(hash: string): { path: string; params: URLSearchParams } {
   return { path: path || "", params: new URLSearchParams(qs ?? "") };
 }
 
-export async function handleMisskeyAuthCallback(): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
-  const url = new URL(window.location.href);
-  const hash = parseHash(window.location.hash);
-  const path = url.pathname === "/auth/misskey" ? "/auth/misskey" : hash.path;
+async function processCallbackUrl(urlString: string): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
+  const url = new URL(urlString);
+  const hash = parseHash(url.hash);
+  const path = url.protocol === "feditile:" ? `/${url.hostname}${url.pathname}` : url.pathname === "/auth/misskey" ? "/auth/misskey" : hash.path;
   if (path !== "/auth/misskey" && path !== "auth/misskey") return { handled: false };
+  pushAuthTrace("callback:hit", `${url.pathname}${url.search}${url.hash}`);
 
   const params = new URLSearchParams(url.search);
   hash.params.forEach((value, key) => {
@@ -23,7 +26,13 @@ export async function handleMisskeyAuthCallback(): Promise<{ handled: boolean; o
   if (!instanceUrl || !session) return { handled: true, ok: false, error: "Missing instanceUrl/session" };
 
   try {
+    pushAuthTrace("callback:params", `instance=${instanceUrl} session=${session}`);
     const account = await finishMiAuth({ instanceUrl, session });
+    try {
+      localStorage.setItem(`${AUTH_RESULT_PREFIX}${session}`, JSON.stringify({ ok: true, account, at: Date.now() }));
+    } catch {
+      // ignore
+    }
     try {
       window.opener?.postMessage({ type: AUTH_COMPLETE_EVENT, account }, window.location.origin);
     } catch {
@@ -36,8 +45,23 @@ export async function handleMisskeyAuthCallback(): Promise<{ handled: boolean; o
     } catch {
       // ignore
     }
+    pushAuthTrace("callback:done", account.id);
     return { handled: true, ok: true };
   } catch (e) {
+    pushAuthTrace("callback:error", String(e));
+    try {
+      localStorage.setItem(`${AUTH_RESULT_PREFIX}${session}`, JSON.stringify({ ok: false, error: String(e), at: Date.now() }));
+    } catch {
+      // ignore
+    }
     return { handled: true, ok: false, error: String(e) };
   }
+}
+
+export async function processMisskeyAuthCallbackUrl(urlString: string) {
+  return processCallbackUrl(urlString);
+}
+
+export async function handleMisskeyAuthCallback(): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
+  return processCallbackUrl(window.location.href);
 }

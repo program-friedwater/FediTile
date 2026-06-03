@@ -7,30 +7,19 @@ const rendererUrl = process.env.VITE_DEV_SERVER_URL;
 const distPath = path.resolve(__dirname, "../dist/index.html");
 const preloadPath = path.resolve(__dirname, "./preload.mjs");
 
-function isMiAuthWindow(url) {
-  return url.includes("/miauth/") || url.includes("/auth/misskey");
-}
+let mainWindow = null;
+let pendingAuthUrl = null;
 
-function createChildWindow(parent, url) {
-  const child = new BrowserWindow({
-    parent,
-    modal: false,
-    width: 520,
-    height: 780,
-    backgroundColor: "#0d1117",
-    autoHideMenuBar: true,
-    webPreferences: {
-      preload: preloadPath,
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  child.loadURL(url);
-  return child;
+function sendAuthUrl(url) {
+  if (mainWindow?.webContents.isLoading()) {
+    pendingAuthUrl = url;
+    return;
+  }
+  mainWindow?.webContents.send("feditile:auth-callback", url);
 }
 
 function createWindow() {
-  const window = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1440,
     height: 920,
     minWidth: 980,
@@ -44,21 +33,48 @@ function createWindow() {
     },
   });
 
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (isMiAuthWindow(url)) {
-      createChildWindow(window, url);
-      return { action: "deny" };
-    }
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url);
     return { action: "deny" };
   });
 
-  if (rendererUrl) window.loadURL(rendererUrl);
-  else window.loadFile(distPath);
+  mainWindow.webContents.on("did-finish-load", () => {
+    if (pendingAuthUrl) {
+      sendAuthUrl(pendingAuthUrl);
+      pendingAuthUrl = null;
+    }
+  });
+
+  if (rendererUrl) mainWindow.loadURL(rendererUrl);
+  else mainWindow.loadFile(distPath);
 }
 
+function extractProtocolUrl(argv) {
+  return argv.find((value) => value.startsWith("feditile://")) ?? null;
+}
+
+if (!app.requestSingleInstanceLock()) app.quit();
+
+app.on("second-instance", (_event, argv) => {
+  const url = extractProtocolUrl(argv);
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+  if (url) sendAuthUrl(url);
+});
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  sendAuthUrl(url);
+});
+
 app.whenReady().then(() => {
+  app.setAsDefaultProtocolClient("feditile");
   createWindow();
+
+  const initialUrl = extractProtocolUrl(process.argv);
+  if (initialUrl) pendingAuthUrl = initialUrl;
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
