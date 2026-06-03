@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadAccounts, removeMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
+import { loadAccounts, onAccountsChanged, removeMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
 import { startMiAuth } from "../../integrations/misskey/miauth";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
@@ -27,9 +27,12 @@ export function SettingsModal(props: Props) {
   useEffect(() => {
     if (!props.isOpen) return;
     setError(null);
-    loadAccounts()
-      .then((a) => setMisskeyAccounts(a.misskey))
-      .catch((e) => setError(`Failed to load accounts: ${String(e)}`));
+    const refresh = () =>
+      loadAccounts()
+        .then((a) => setMisskeyAccounts(a.misskey))
+        .catch((e) => setError(`Failed to load accounts: ${String(e)}`));
+    refresh();
+    return onAccountsChanged(refresh);
   }, [props.isOpen]);
 
   if (!props.isOpen) return null;

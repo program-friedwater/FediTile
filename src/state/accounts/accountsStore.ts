@@ -20,16 +20,29 @@ export type AccountsState = {
 
 const KEY = "accounts.v1";
 const ACCOUNTS_CHANGED_EVENT = "feditile:accounts-changed";
+const ACCOUNTS_CHANGED_BROADCAST = "feditile-accounts";
 
 export function onAccountsChanged(cb: () => void): () => void {
   const handler = () => cb();
+  const storageHandler = (e: StorageEvent) => {
+    if (e.key === ACCOUNTS_CHANGED_BROADCAST) cb();
+  };
   window.addEventListener(ACCOUNTS_CHANGED_EVENT, handler as EventListener);
-  return () => window.removeEventListener(ACCOUNTS_CHANGED_EVENT, handler as EventListener);
+  window.addEventListener("storage", storageHandler);
+  return () => {
+    window.removeEventListener(ACCOUNTS_CHANGED_EVENT, handler as EventListener);
+    window.removeEventListener("storage", storageHandler);
+  };
 }
 
 function emitAccountsChanged() {
   try {
     window.dispatchEvent(new Event(ACCOUNTS_CHANGED_EVENT));
+  } catch {
+    // ignore
+  }
+  try {
+    localStorage.setItem(ACCOUNTS_CHANGED_BROADCAST, String(Date.now()));
   } catch {
     // ignore
   }
