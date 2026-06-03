@@ -86,37 +86,11 @@ function createWindow() {
   else mainWindow.loadFile(distPath);
 }
 
-function extractProtocolUrl(argv) {
-  return argv.find((value) => value.startsWith("feditile://")) ?? null;
-}
-
 if (!app.requestSingleInstanceLock()) app.quit();
 
-app.on("second-instance", (_event, argv) => {
-  const url = extractProtocolUrl(argv);
-  if (mainWindow) {
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.focus();
-  }
-  if (url) sendAuthUrl(url);
-});
-
-app.on("open-url", (event, url) => {
-  event.preventDefault();
-  sendAuthUrl(url);
-});
-
 app.whenReady().then(async () => {
-  if (process.defaultApp && process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient("feditile", process.execPath, [path.resolve(process.argv[1])]);
-  } else {
-    app.setAsDefaultProtocolClient("feditile");
-  }
   await startAuthServer();
   createWindow();
-
-  const initialUrl = extractProtocolUrl(process.argv);
-  if (initialUrl) pendingAuthUrl = initialUrl;
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();

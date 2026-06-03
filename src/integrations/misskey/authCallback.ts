@@ -13,7 +13,7 @@ function parseHash(hash: string): { path: string; params: URLSearchParams } {
 async function processCallbackUrl(urlString: string): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
   const url = new URL(urlString);
   const hash = parseHash(url.hash);
-  const path = url.protocol === "feditile:" ? `/${url.hostname}${url.pathname}` : url.pathname === "/auth/misskey" ? "/auth/misskey" : hash.path;
+  const path = url.pathname === "/auth/misskey" ? "/auth/misskey" : hash.path;
   if (path !== "/auth/misskey" && path !== "auth/misskey") return { handled: false };
   pushAuthTrace("callback:hit", `${url.pathname}${url.search}${url.hash}`);
 
@@ -38,7 +38,7 @@ async function processCallbackUrl(urlString: string): Promise<{ handled: boolean
     } catch {
       // ignore
     }
-    if (url.pathname === "/auth/misskey") window.location.replace(new URL("/", window.location.origin).toString());
+    if (url.pathname === "/auth/misskey" && (url.protocol === "http:" || url.protocol === "https:")) window.location.replace(new URL("/", window.location.origin).toString());
     else window.location.hash = "";
     try {
       window.close();
