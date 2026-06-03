@@ -1066,6 +1066,7 @@ a:hover {
 
 .modal {
   width: min(560px, 100%);
+  max-height: min(84vh, 100%);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--panel-strong);
@@ -1073,6 +1074,8 @@ a:hover {
   overflow: clip;
   position: relative;
   z-index: 1001;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (prefers-color-scheme: light) {
@@ -1091,6 +1094,8 @@ a:hover {
   padding: 14px;
   display: grid;
   gap: 12px;
+  min-height: 0;
+  overflow: auto;
 }
 
 .fieldRow {
