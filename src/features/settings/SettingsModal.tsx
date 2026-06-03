@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadAccounts, onAccountsChanged, removeMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
+import { loadAccounts, onAccountsChanged, removeMisskeyAccount, upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
 import { startMiAuth } from "../../integrations/misskey/miauth";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
@@ -17,11 +17,13 @@ export function SettingsModal(props: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const callbackUrl = useMemo(() => {
-    // Works both on dev server and file:// preview.
-    const u = new URL(window.location.href);
-    u.hash = `#/auth/misskey`;
-    u.search = "";
-    return u.toString();
+    const current = new URL(window.location.href);
+    if (current.protocol === "http:" || current.protocol === "https:") {
+      return new URL("/auth/misskey", current.origin).toString();
+    }
+    current.hash = "#/auth/misskey";
+    current.search = "";
+    return current.toString();
   }, []);
 
   useEffect(() => {
@@ -34,6 +36,18 @@ export function SettingsModal(props: Props) {
     refresh();
     return onAccountsChanged(refresh);
   }, [props.isOpen]);
+
+  useEffect(() => {
+    const onMessage = async (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type !== "feditile:misskey-auth-complete" || !event.data.account) return;
+      await upsertMisskeyAccount(event.data.account as MisskeyAccount);
+      const next = await loadAccounts();
+      setMisskeyAccounts(next.misskey);
+    };
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
 
   if (!props.isOpen) return null;
 
