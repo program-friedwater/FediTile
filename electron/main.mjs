@@ -65,6 +65,30 @@ function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    const target = new URL(url);
+    const appOrigin = rendererUrl ? new URL(rendererUrl).origin : null;
+    const isAuthWindow =
+      target.pathname.includes("/miauth/") ||
+      target.pathname === "/auth/misskey" ||
+      (appOrigin ? target.origin === appOrigin : false);
+    if (isAuthWindow) {
+      return {
+        action: "allow",
+        overrideBrowserWindowOptions: {
+          width: 520,
+          height: 780,
+          minWidth: 420,
+          minHeight: 560,
+          autoHideMenuBar: true,
+          backgroundColor: "#0d1117",
+          webPreferences: {
+            preload: preloadPath,
+            contextIsolation: true,
+            nodeIntegration: false,
+          },
+        },
+      };
+    }
     shell.openExternal(url);
     return { action: "deny" };
   });
