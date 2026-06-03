@@ -192,7 +192,7 @@ a:hover {
   height: 100%;
   width: 100%;
   padding: 14px;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .tiledRoot {

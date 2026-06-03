@@ -82,12 +82,10 @@ function WorkspaceScreen() {
             <TiledLayout
               layout={activeTab.layout}
               tilesById={new Map(activeTab.tiles.map((t) => [t.id, t]))}
-              widthPx={activeTab.widthPx}
               activeTileId={activeTileId}
               onActivate={(id) => setActiveTileId(id)}
               onSplit={(targetId, dir) => dispatch({ type: "layout/split", targetId, dir, newTile: { title: "Split", query: { kind: "local" }, size: "m" } })}
               onSetSplitRatio={(path, ratio) => dispatch({ type: "layout/setRatio", path, ratio })}
-              onSetWidthPx={(widthPx) => dispatch({ type: "workspace/setWidthPx", widthPx })}
               onRemove={(id) => dispatch({ type: "tile/remove", id })}
               onRename={(id, title) => dispatch({ type: "tile/rename", id, title })}
               onEdit={(id) => {

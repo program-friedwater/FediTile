@@ -5,30 +5,20 @@ import { TileView } from "./TileView";
 type Props = {
   layout: LayoutNode;
   tilesById: Map<TileId, Tile>;
-  widthPx?: number;
   activeTileId: TileId | null;
   onActivate: (id: TileId) => void;
   onSplit: (targetId: TileId, dir: "row" | "col") => void;
   onSetSplitRatio: (path: Array<"a" | "b">, ratio: number) => void;
-  onSetWidthPx: (widthPx: number) => void;
   onRemove: (id: TileId) => void;
   onRename: (id: TileId, title: string) => void;
   onEdit: (id: TileId) => void;
 };
-
-const MIN_TILE_WIDTH = 280;
-const SPLIT_GAP = 12;
 
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
 }
 
 export function TiledLayout(props: Props) {
-  function minWidthOf(node: LayoutNode): number {
-    if (node.type === "leaf") return MIN_TILE_WIDTH;
-    return node.dir === "row" ? minWidthOf(node.a) + SPLIT_GAP + minWidthOf(node.b) : Math.max(minWidthOf(node.a), minWidthOf(node.b));
-  }
-
   function renderNode(node: LayoutNode, path: Array<"a" | "b">): React.ReactNode {
     if (node.type === "leaf") {
       const tile = props.tilesById.get(node.tileId);
@@ -59,7 +49,7 @@ export function TiledLayout(props: Props) {
     }
 
     return (
-      <div className={`split ${node.dir === "row" ? "splitRow" : "splitCol"}`} style={node.dir === "row" ? { minWidth: minWidthOf(node) } : undefined}>
+      <div className={`split ${node.dir === "row" ? "splitRow" : "splitCol"}`}>
         <div className="splitPane" style={{ flex: `${node.ratio} 1 0%` }}>{renderNode(node.a, path.concat("a"))}</div>
         <div
           className={`splitBar ${node.dir === "row" ? "splitBarV" : "splitBarH"}`}
@@ -93,33 +83,9 @@ export function TiledLayout(props: Props) {
     );
   }
 
-  const minWidth = minWidthOf(props.layout);
-  const width = Math.max(minWidth, props.widthPx ?? minWidth);
-
   return (
-    <div className="tiledRoot" style={{ minWidth, width }}>
+    <div className="tiledRoot">
       {renderNode(props.layout, [])}
-      <div
-        className="workspaceEdgeResizer"
-        role="separator"
-        aria-orientation="vertical"
-        title="Drag to resize workspace"
-        onPointerDown={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const startX = e.clientX;
-          const startWidth = width;
-          const onMove = (ev: PointerEvent) => props.onSetWidthPx(Math.max(minWidth, Math.round(startWidth + (ev.clientX - startX))));
-          const onUp = () => {
-            window.removeEventListener("pointermove", onMove);
-            window.removeEventListener("pointerup", onUp);
-            window.removeEventListener("pointercancel", onUp);
-          };
-          window.addEventListener("pointermove", onMove);
-          window.addEventListener("pointerup", onUp, { once: true });
-          window.addEventListener("pointercancel", onUp, { once: true });
-        }}
-      />
     </div>
   );
 }
