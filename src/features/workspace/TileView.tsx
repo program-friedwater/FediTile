@@ -107,6 +107,27 @@ export function TileView(props: Props) {
     return ((dataTransfer?.getData("text/feditile-tile-id") || dataTransfer?.getData("text/plain")) as TileId) || draggedTileId;
   }
 
+  function updateDragPreview(clientX: number, currentTarget: HTMLDivElement, dataTransfer: DataTransfer | null) {
+    if (!props.onReorder) return;
+    const draggedId = readDraggedTileId(dataTransfer);
+    if (!draggedId || draggedId === props.tile.id) {
+      setDragPreview(null);
+      return;
+    }
+    const rect = currentTarget.getBoundingClientRect();
+    const position = clientX < rect.left + rect.width / 2 ? "before" : "after";
+    setDragPreview(position);
+  }
+
+  function handleDrop(dataTransfer: DataTransfer | null) {
+    if (!props.onReorder) return;
+    const draggedId = readDraggedTileId(dataTransfer);
+    const position = dragPreview ?? "before";
+    setDragPreview(null);
+    if (!draggedId || draggedId === props.tile.id) return;
+    props.onReorder(draggedId, props.tile.id, position);
+  }
+
   return (
     <div
       className="tile"
@@ -121,6 +142,20 @@ export function TileView(props: Props) {
         maxHeight: resizable ? Math.max(220, Math.min(viewportHeight, props.maxHeightPx)) : "100%",
       }}
       onMouseDown={props.onActivate}
+      onDragOver={(e) => {
+        if (!props.onReorder) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        updateDragPreview(e.clientX, e.currentTarget, e.dataTransfer);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragPreview(null);
+      }}
+      onDrop={(e) => {
+        if (!props.onReorder) return;
+        e.preventDefault();
+        handleDrop(e.dataTransfer);
+      }}
     >
       {resizable ? (
         <div
@@ -172,26 +207,17 @@ export function TileView(props: Props) {
           if (!props.onReorder) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
-          const draggedId = readDraggedTileId(e.dataTransfer);
-          if (!draggedId || draggedId === props.tile.id) {
-            setDragPreview(null);
-            return;
-          }
-          const rect = e.currentTarget.getBoundingClientRect();
-          const position = e.clientX < rect.left + rect.width / 2 ? "before" : "after";
-          setDragPreview(position);
+          const tileEl = e.currentTarget.closest(".tile");
+          if (!(tileEl instanceof HTMLDivElement)) return;
+          updateDragPreview(e.clientX, tileEl, e.dataTransfer);
         }}
         onDragLeave={(e) => {
-          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragPreview(null);
+          if (!e.currentTarget.closest(".tile")?.contains(e.relatedTarget as Node | null)) setDragPreview(null);
         }}
         onDrop={(e) => {
           if (!props.onReorder) return;
           e.preventDefault();
-          const draggedId = readDraggedTileId(e.dataTransfer);
-          const position = dragPreview ?? "before";
-          setDragPreview(null);
-          if (!draggedId || draggedId === props.tile.id) return;
-          props.onReorder(draggedId, props.tile.id, position);
+          handleDrop(e.dataTransfer);
         }}
         onDragEnd={() => {
           draggedTileId = null;

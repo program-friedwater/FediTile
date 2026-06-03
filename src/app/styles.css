@@ -299,16 +299,26 @@ a:hover {
   border-color: var(--accent);
 }
 
+.tile[data-drag-preview="before"]::before,
+.tile[data-drag-preview="after"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in oklab, white 12%, transparent);
+  pointer-events: none;
+  z-index: 3;
+}
+
 .tile[data-drag-preview="before"]::after,
 .tile[data-drag-preview="after"]::after {
   content: "";
   position: absolute;
-  top: 6px;
-  bottom: 6px;
+  top: 8px;
+  bottom: 8px;
   width: 4px;
-  background: var(--accent);
+  background: color-mix(in oklab, white 86%, var(--accent));
   pointer-events: none;
-  z-index: 3;
+  z-index: 4;
   border-radius: 999px;
 }
 
