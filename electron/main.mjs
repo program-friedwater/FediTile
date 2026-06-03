@@ -1,4 +1,4 @@
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,11 +21,6 @@ function sendAuthUrl(url) {
   mainWindow?.webContents.send("feditile:auth-callback", url);
 }
 
-
-function sendAuthConfig() {
-  if (!mainWindow) return;
-  mainWindow.webContents.send("feditile:auth-config", { authCallbackBaseUrl });
-}
 
 function startAuthServer() {
   return new Promise((resolve, reject) => {
@@ -75,7 +70,6 @@ function createWindow() {
   });
 
   mainWindow.webContents.on("did-finish-load", () => {
-    sendAuthConfig();
     if (pendingAuthUrl) {
       sendAuthUrl(pendingAuthUrl);
       pendingAuthUrl = null;
@@ -87,6 +81,8 @@ function createWindow() {
 }
 
 if (!app.requestSingleInstanceLock()) app.quit();
+
+ipcMain.handle("feditile:get-auth-config", () => ({ authCallbackBaseUrl }));
 
 app.whenReady().then(async () => {
   await startAuthServer();

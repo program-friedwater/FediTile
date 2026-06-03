@@ -25,9 +25,20 @@ export function SettingsModal(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [traceLines, setTraceLines] = useState<string[]>([]);
-  const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(window.feditileDesktop?.getAuthConfig?.().authCallbackBaseUrl ?? null);
+  const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(null);
 
-  useEffect(() => window.feditileDesktop?.onAuthConfig?.((config) => setDesktopCallbackBaseUrl(config.authCallbackBaseUrl)), []);
+  useEffect(() => {
+    let cancelled = false;
+    if (!isElectronRuntime()) return;
+    window.feditileDesktop?.getAuthConfig?.().then((config) => {
+      if (!cancelled) setDesktopCallbackBaseUrl(config.authCallbackBaseUrl);
+    }).catch(() => {
+      if (!cancelled) setDesktopCallbackBaseUrl(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const callbackUrl = useMemo(() => {
     if (isElectronRuntime()) return desktopCallbackBaseUrl ?? "";
