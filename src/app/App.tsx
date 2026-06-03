@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Tile, TileId } from "../state/workspace/tileTypes";
 import { WorkspaceProvider, useWorkspace } from "../state/workspace/WorkspaceProvider";
 import { createDefaultWorkspace } from "../state/workspace/workspaceReducer";
@@ -15,19 +15,27 @@ function WorkspaceScreen() {
   const activeTab = workspace.tabs.find((tab) => tab.id === workspace.activeTabId) ?? workspace.tabs[0] ?? null;
   const [addOpen, setAddOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [activeTileId, setActiveTileId] = useState<TileId | null>(activeTab?.tiles[0]?.id ?? null);
+  const [activeTileIds, setActiveTileIds] = useState<Record<string, TileId | null>>({});
   const [editOpen, setEditOpen] = useState(false);
   const [editTile, setEditTile] = useState<Tile | null>(null);
+  const gridRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const gridSize = useElementSize<HTMLDivElement>();
-  const [gridEl, setGridEl] = useState<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    setActiveTileId(activeTab?.tiles[0]?.id ?? null);
-  }, [activeTab?.id]);
+    setActiveTileIds((prev) => {
+      const next = { ...prev };
+      for (const tab of workspace.tabs) {
+        if (!(tab.id in next)) next[tab.id] = tab.tiles[0]?.id ?? null;
+        else if (next[tab.id] && !tab.tiles.some((tile) => tile.id === next[tab.id])) next[tab.id] = tab.tiles[0]?.id ?? null;
+      }
+      return next;
+    });
+  }, [workspace.tabs]);
 
   const tileCount = activeTab?.tiles.length ?? 0;
   const subtitle = useMemo(() => (tileCount === 0 ? "No tiles yet. Add one to get started." : `${tileCount} tile${tileCount === 1 ? "" : "s"} • timeline-first`), [tileCount]);
   const activeTabIndex = activeTab ? workspace.tabs.findIndex((tab) => tab.id === activeTab.id) : -1;
+  const activeTileId = activeTab ? (activeTileIds[activeTab.id] ?? activeTab.tiles[0]?.id ?? null) : null;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -77,34 +85,38 @@ function WorkspaceScreen() {
         {!activeTab || activeTab.tiles.length === 0 ? (
           <div className="emptyState">Add your first tile.</div>
         ) : (
-          <div
-            className="grid"
-            ref={(el) => {
-              gridSize.ref(el);
-              setGridEl(el);
-            }}
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === "a" && (e.metaKey || e.ctrlKey)) setAddOpen(true);
-            }}
-            style={{ outline: "none" }}
-          >
-            <TiledLayout
-              layout={activeTab.layout}
-              tilesById={new Map(activeTab.tiles.map((t) => [t.id, t]))}
-              activeTileId={activeTileId}
-              onActivate={(id) => setActiveTileId(id)}
-              onReorder={(id, targetId, position) => dispatch({ type: "tile/reorder", id, targetId, position })}
-              onSplit={(targetId, dir) => dispatch({ type: "layout/split", targetId, dir, newTile: { title: "Split", query: { kind: "local" }, size: "m" } })}
-              onSetSplitRatio={(path, ratio) => dispatch({ type: "layout/setRatio", path, ratio })}
-              onRemove={(id) => dispatch({ type: "tile/remove", id })}
-              onRename={(id, title) => dispatch({ type: "tile/rename", id, title })}
-              onEdit={(id) => {
-                setEditTile(activeTab.tiles.find((x) => x.id === id) ?? null);
-                setEditOpen(true);
+          workspace.tabs.map((tab) => (
+            <div
+              key={tab.id}
+              className="grid"
+              data-active={tab.id === workspace.activeTabId ? "true" : "false"}
+              ref={(el) => {
+                if (tab.id === workspace.activeTabId) gridSize.ref(el);
+                gridRefs.current[tab.id] = el;
               }}
-            />
-          </div>
+              tabIndex={tab.id === workspace.activeTabId ? 0 : -1}
+              onKeyDown={(e) => {
+                if (e.key === "a" && (e.metaKey || e.ctrlKey)) setAddOpen(true);
+              }}
+              style={{ outline: "none", display: tab.id === workspace.activeTabId ? undefined : "none" }}
+            >
+              <TiledLayout
+                layout={tab.layout}
+                tilesById={new Map(tab.tiles.map((t) => [t.id, t]))}
+                activeTileId={activeTileIds[tab.id] ?? tab.tiles[0]?.id ?? null}
+                onActivate={(id) => setActiveTileIds((prev) => ({ ...prev, [tab.id]: id }))}
+                onReorder={(id, targetId, position) => dispatch({ type: "tile/reorder", id, targetId, position })}
+                onSplit={(targetId, dir) => dispatch({ type: "layout/split", targetId, dir, newTile: { title: "Split", query: { kind: "local" }, size: "m" } })}
+                onSetSplitRatio={(path, ratio) => dispatch({ type: "layout/setRatio", path, ratio })}
+                onRemove={(id) => dispatch({ type: "tile/remove", id })}
+                onRename={(id, title) => dispatch({ type: "tile/rename", id, title })}
+                onEdit={(id) => {
+                  setEditTile(tab.tiles.find((x) => x.id === id) ?? null);
+                  setEditOpen(true);
+                }}
+              />
+            </div>
+          ))
         )}
       </main>
 
@@ -113,7 +125,7 @@ function WorkspaceScreen() {
         onClose={() => setAddOpen(false)}
         onCreate={(tile) => {
           if (!activeTab || activeTab.tiles.length === 0) return dispatch({ type: "tile/add", tile });
-          const leaves = gridEl?.querySelectorAll<HTMLDivElement>(".tiledLeaf[data-tileid]") ?? [];
+          const leaves = gridRefs.current[activeTab.id]?.querySelectorAll<HTMLDivElement>(".tiledLeaf[data-tileid]") ?? [];
           let best: { id: TileId; area: number } | null = null;
           leaves.forEach((el) => {
             const id = el.dataset.tileid as TileId | undefined;

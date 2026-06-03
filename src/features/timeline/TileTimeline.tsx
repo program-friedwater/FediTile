@@ -121,7 +121,7 @@ export function TileTimeline(props: Props) {
     (async () => {
       // Only timeline kinds for now
       const kind = props.query.kind;
-      const isTimeline = kind === "home" || kind === "local" || kind === "social" || kind === "federated" || kind === "trending";
+      const isTimeline = kind === "home" || kind === "local" || kind === "social" || kind === "federated";
       if (!isTimeline) {
         setItems(getMockTimelinePage(props.query, 0, PAGE_SIZE));
         setLoaded(PAGE_SIZE);
@@ -184,7 +184,7 @@ export function TileTimeline(props: Props) {
       (async () => {
         try {
           const kind = props.query.kind;
-          if (!(kind === "home" || kind === "local" || kind === "social" || kind === "federated" || kind === "trending")) return;
+          if (!(kind === "home" || kind === "local" || kind === "social" || kind === "federated")) return;
           const acc = await loadAccounts();
           const account = acc.misskey[0];
           if (!account) throw new Error("No Misskey account connected");

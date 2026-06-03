@@ -2,6 +2,7 @@ import type { AccountId, Author, Cursor, Notification, NotificationType, Post, T
 import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 
 export type MisskeyNote = any;
+export type MisskeyTrendTag = { tag: string; usersCount?: number; chart?: number[] };
 
 function normalizeEmojiMap(input: unknown): Record<string, string> | undefined {
   if (!input) return undefined;
@@ -243,12 +244,16 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
   if (req.kind === "social") endpoint = "notes/hybrid-timeline";
   if (req.kind === "federated") endpoint = "notes/global-timeline";
   if (req.kind === "home") endpoint = "notes/timeline";
-  if (req.kind === "trending") endpoint = "notes/featured";
-
   const notes = await postJson<MisskeyNote[]>(account, endpoint, body);
   const items = notes.map((n) => normalizeMisskeyNote(account, n));
   const nextCursor: Cursor | undefined = items.length > 0 ? { type: "max_id", value: String(notes[notes.length - 1]?.id) } : undefined;
   return { items, nextCursor };
+}
+
+export async function fetchTrendingTags(account: MisskeyAccount): Promise<MisskeyTrendTag[]> {
+  const res = await fetch(`${account.instanceUrl}/api/hashtags/trend`);
+  if (!res.ok) throw new Error(`Misskey API failed: hashtags/trend (${res.status} ${res.statusText})`);
+  return (await res.json()) as MisskeyTrendTag[];
 }
 
 export async function fetchNotifications(

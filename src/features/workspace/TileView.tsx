@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Tile, TileId, TileSize } from "../../state/workspace/tileTypes";
 import { tileKindLabel } from "../../state/workspace/tileTypes";
 import { TileTimeline } from "../timeline/TileTimeline";
+import { TileTrending } from "../timeline/TileTrending";
 import { TileCompose } from "../compose/TileCompose";
 import { TileInspect } from "../inspect/TileInspect";
 import { TileNotifications } from "../notifications/TileNotifications";
@@ -363,6 +364,8 @@ export function TileView(props: Props) {
           <TileInspect />
         ) : props.tile.query.kind === "notifications" ? (
           <TileNotifications />
+        ) : props.tile.query.kind === "trending" ? (
+          <TileTrending />
         ) : (
           <TileTimeline query={props.tile.query} />
         )}

@@ -1265,6 +1265,28 @@ textarea.input {
   line-height: 1.45;
 }
 
+.trendList {
+  gap: 8px;
+}
+
+.trendItem {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  align-items: start;
+}
+
+.trendRank {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.trendBody {
+  min-width: 0;
+}
+
 .cwLine {
   margin-top: 6px;
   padding: 4px 8px;
