@@ -18,7 +18,6 @@ export function EditTileModal(props: Props) {
   const [kind, setKind] = useState<TileQuery["kind"]>(tile?.query.kind ?? "home");
   const [title, setTitle] = useState(tile?.title ?? "");
   const [size, setSize] = useState<TileSize>(tile?.size ?? "m");
-  const [tag, setTag] = useState(tile?.query.kind === "hashtag" ? tile.query.tag : "news");
   const [q, setQ] = useState(tile?.query.kind === "search" ? tile.query.q : "feditile");
 
   // Re-seed state when opening / tile changes
@@ -27,19 +26,16 @@ export function EditTileModal(props: Props) {
     setKind(tile.query.kind);
     setTitle(tile.title);
     setSize(tile.size);
-    if (tile.query.kind === "hashtag") setTag(tile.query.tag);
     if (tile.query.kind === "search") setQ(tile.query.q);
   }, [props.isOpen, tile?.id]);
 
   const query: TileQuery = useMemo(() => {
     switch (kind) {
-      case "hashtag":
-        return { kind, tag: tag.trim().replace(/^#/, "") || "news" };
       case "search":
         return { kind, q: q.trim() || "feditile" };
       case "compose":
-        return { kind };
       case "inspect":
+      case "trending":
         return { kind };
       case "home":
       case "local":
@@ -50,7 +46,7 @@ export function EditTileModal(props: Props) {
       default:
         return { kind: "home" };
     }
-  }, [kind, tag, q]);
+  }, [kind, q]);
 
   const effectiveTitle = title.trim() || tileKindLabel(kind);
 
@@ -82,20 +78,13 @@ export function EditTileModal(props: Props) {
               <option value="local">Local</option>
               <option value="social">Social</option>
               <option value="federated">Federated</option>
+              <option value="trending">Trending</option>
               <option value="notifications">Notifications</option>
               <option value="compose">Compose</option>
               <option value="inspect">Inspect</option>
-              <option value="hashtag">Hashtag</option>
               <option value="search">Search</option>
         </Select>
       </FieldRow>
-
-      {kind === "hashtag" ? (
-        <FieldRow>
-          <Label>Hashtag</Label>
-          <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="news" />
-        </FieldRow>
-      ) : null}
 
       {kind === "search" ? (
         <FieldRow>

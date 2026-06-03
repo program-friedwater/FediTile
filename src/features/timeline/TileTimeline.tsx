@@ -121,7 +121,7 @@ export function TileTimeline(props: Props) {
     (async () => {
       // Only timeline kinds for now
       const kind = props.query.kind;
-      const isTimeline = kind === "home" || kind === "local" || kind === "social" || kind === "federated";
+      const isTimeline = kind === "home" || kind === "local" || kind === "social" || kind === "federated" || kind === "trending";
       if (!isTimeline) {
         setItems(getMockTimelinePage(props.query, 0, PAGE_SIZE));
         setLoaded(PAGE_SIZE);
@@ -146,17 +146,19 @@ export function TileTimeline(props: Props) {
         nextCursorRef.current = page.nextCursor?.type === "max_id" ? page.nextCursor.value : null;
         setLoading(false);
 
-        streamRef.current = startTimelineStream(
-          account,
-          kind,
-          (p) => {
-            if (isNearTopRef.current) prependPost(p);
-            else queuePendingPost(p);
-          },
-          () => {
-            // ignore for now; polling fallback can be added later
-          },
-        );
+        if (kind === "home" || kind === "local" || kind === "social" || kind === "federated") {
+          streamRef.current = startTimelineStream(
+            account,
+            kind,
+            (p) => {
+              if (isNearTopRef.current) prependPost(p);
+              else queuePendingPost(p);
+            },
+            () => {
+              // ignore for now; polling fallback can be added later
+            },
+          );
+        }
       } catch (e) {
         if (canceled) return;
         setMode("misskey");
@@ -182,7 +184,7 @@ export function TileTimeline(props: Props) {
       (async () => {
         try {
           const kind = props.query.kind;
-          if (!(kind === "home" || kind === "local" || kind === "social" || kind === "federated")) return;
+          if (!(kind === "home" || kind === "local" || kind === "social" || kind === "federated" || kind === "trending")) return;
           const acc = await loadAccounts();
           const account = acc.misskey[0];
           if (!account) throw new Error("No Misskey account connected");

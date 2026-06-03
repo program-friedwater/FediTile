@@ -243,6 +243,7 @@ export async function fetchTimeline(account: MisskeyAccount, req: TimelineReques
   if (req.kind === "social") endpoint = "notes/hybrid-timeline";
   if (req.kind === "federated") endpoint = "notes/global-timeline";
   if (req.kind === "home") endpoint = "notes/timeline";
+  if (req.kind === "trending") endpoint = "notes/featured";
 
   const notes = await postJson<MisskeyNote[]>(account, endpoint, body);
   const items = notes.map((n) => normalizeMisskeyNote(account, n));

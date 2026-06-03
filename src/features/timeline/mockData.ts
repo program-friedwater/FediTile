@@ -28,7 +28,7 @@ export function getMockTimelinePage(query: TileQuery, offset: number, limit: num
   const seed = hashString(JSON.stringify(query));
   const rand = seededRand(seed);
   const now = Date.now();
-  const label = query.kind === "hashtag" ? `#${query.tag}` : query.kind === "search" ? query.q : query.kind;
+  const label = query.kind === "search" ? query.q : query.kind;
   const authors = ["alice@example.com", "bob@example.com", "carol@example.com", "dave@example.com"];
 
   const items: Post[] = [];
@@ -54,7 +54,7 @@ custom emoji: :party_parrot:
 <small>small text</small>
 <center>centered line</center>`
           : `(${label}) Example item ${i + 1}. This is placeholder data until connectors are implemented.`,
-      tags: query.kind === "hashtag" ? [query.tag] : undefined,
+      tags: query.kind === "trending" ? ["trending"] : undefined,
       customEmojis: {
         party_parrot:
           "https://raw.githubusercontent.com/twitter/twemoji/master/assets/svg/1f389.svg",

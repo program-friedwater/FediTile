@@ -9,7 +9,7 @@ export type TileQuery =
   | { kind: "local" }
   | { kind: "social" }
   | { kind: "federated" }
-  | { kind: "hashtag"; tag: string }
+  | { kind: "trending" }
   | { kind: "search"; q: string }
   | { kind: "notifications" }
   | { kind: "compose" }
@@ -54,8 +54,8 @@ export function tileKindLabel(kind: TimelineKind | TileQuery["kind"]): string {
       return "Social";
     case "federated":
       return "Federated";
-    case "hashtag":
-      return "Hashtag";
+    case "trending":
+      return "Trending";
     case "search":
       return "Search";
     case "notifications":

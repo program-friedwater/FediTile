@@ -16,18 +16,15 @@ export function AddTileModal(props: Props) {
   const [kind, setKind] = useState<TileQuery["kind"]>("home");
   const [title, setTitle] = useState("");
   const [size, setSize] = useState<TileSize>("m");
-  const [tag, setTag] = useState("news");
   const [q, setQ] = useState("feditile");
 
   const query: TileQuery = useMemo(() => {
     switch (kind) {
-      case "hashtag":
-        return { kind, tag: tag.trim().replace(/^#/, "") || "news" };
       case "search":
         return { kind, q: q.trim() || "feditile" };
       case "compose":
-        return { kind };
       case "inspect":
+      case "trending":
         return { kind };
       case "home":
       case "local":
@@ -38,7 +35,7 @@ export function AddTileModal(props: Props) {
       default:
         return { kind: "home" };
     }
-  }, [kind, tag, q]);
+  }, [kind, q]);
 
   const effectiveTitle = title.trim() || tileKindLabel(kind);
 
@@ -70,20 +67,13 @@ export function AddTileModal(props: Props) {
               <option value="local">Local</option>
               <option value="social">Social</option>
               <option value="federated">Federated</option>
+              <option value="trending">Trending</option>
               <option value="notifications">Notifications</option>
               <option value="compose">Compose</option>
               <option value="inspect">Inspect</option>
-              <option value="hashtag">Hashtag</option>
               <option value="search">Search</option>
         </Select>
       </FieldRow>
-
-      {kind === "hashtag" ? (
-        <FieldRow>
-          <Label>Hashtag</Label>
-          <Input value={tag} onChange={(e) => setTag(e.target.value)} placeholder="news" />
-        </FieldRow>
-      ) : null}
 
       {kind === "search" ? (
         <FieldRow>

@@ -6,7 +6,7 @@ import { TileCompose } from "../compose/TileCompose";
 import { TileInspect } from "../inspect/TileInspect";
 import { TileNotifications } from "../notifications/TileNotifications";
 import { IconButton } from "../../components/ui/Button";
-import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon, SocialIcon } from "../../components/icons/icons";
+import { BellIcon, GlobeIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon, SocialIcon, TrendingIcon } from "../../components/icons/icons";
 
 let draggedTileId: TileId | null = null;
 
@@ -72,8 +72,8 @@ export function TileView(props: Props) {
         return <GlobeIcon />;
       case "notifications":
         return <BellIcon />;
-      case "hashtag":
-        return <HashIcon />;
+      case "trending":
+        return <TrendingIcon />;
       case "search":
         return <SearchIcon />;
       case "compose":
