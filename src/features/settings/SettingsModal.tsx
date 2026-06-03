@@ -30,7 +30,7 @@ export function SettingsModal(props: Props) {
   useEffect(() => window.feditileDesktop?.onAuthConfig?.((config) => setDesktopCallbackBaseUrl(config.authCallbackBaseUrl)), []);
 
   const callbackUrl = useMemo(() => {
-    if (isElectronRuntime()) return desktopCallbackBaseUrl ?? "http://localhost/auth/misskey";
+    if (isElectronRuntime()) return desktopCallbackBaseUrl ?? "";
     const current = new URL(window.location.href);
     if (current.protocol === "http:" || current.protocol === "https:") {
       return new URL("/auth/misskey", current.origin).toString();
@@ -137,9 +137,13 @@ export function SettingsModal(props: Props) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <Pill>{misskeyAccounts.length} account(s)</Pill>
           <Button
+            disabled={isElectronRuntime() && !desktopCallbackBaseUrl}
             onClick={() => {
               setError(null);
               try {
+                if (isElectronRuntime() && !desktopCallbackBaseUrl) {
+                  throw new Error("Desktop auth receiver is still starting. Please wait a moment and try again.");
+                }
                 const { authorizeUrl } = startMiAuth({
                   instanceUrl,
                   appName: "FediTile",
