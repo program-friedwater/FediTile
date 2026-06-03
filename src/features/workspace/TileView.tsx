@@ -8,6 +8,8 @@ import { TileNotifications } from "../notifications/TileNotifications";
 import { IconButton } from "../../components/ui/Button";
 import { BellIcon, GlobeIcon, HashIcon, HomeIcon, LocalIcon, PenIcon, SearchIcon, SocialIcon } from "../../components/icons/icons";
 
+let draggedTileId: TileId | null = null;
+
 type Props = {
   tile: Tile;
   active: boolean;
@@ -101,6 +103,10 @@ export function TileView(props: Props) {
     };
   }, [menuOpen]);
 
+  function readDraggedTileId(dataTransfer: DataTransfer | null) {
+    return ((dataTransfer?.getData("text/feditile-tile-id") || dataTransfer?.getData("text/plain")) as TileId) || draggedTileId;
+  }
+
   return (
     <div
       className="tile"
@@ -155,7 +161,9 @@ export function TileView(props: Props) {
         className="tileHeader"
         draggable
         onDragStart={(e) => {
+          draggedTileId = props.tile.id;
           e.dataTransfer.setData("text/feditile-tile-id", props.tile.id);
+          e.dataTransfer.setData("text/plain", props.tile.id);
           e.dataTransfer.effectAllowed = "move";
           props.onActivate();
           setDragPreview(null);
@@ -164,7 +172,7 @@ export function TileView(props: Props) {
           if (!props.onReorder) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
-          const draggedId = e.dataTransfer.getData("text/feditile-tile-id") as TileId;
+          const draggedId = readDraggedTileId(e.dataTransfer);
           if (!draggedId || draggedId === props.tile.id) {
             setDragPreview(null);
             return;
@@ -179,13 +187,16 @@ export function TileView(props: Props) {
         onDrop={(e) => {
           if (!props.onReorder) return;
           e.preventDefault();
-          const draggedId = e.dataTransfer.getData("text/feditile-tile-id") as TileId;
+          const draggedId = readDraggedTileId(e.dataTransfer);
           const position = dragPreview ?? "before";
           setDragPreview(null);
           if (!draggedId || draggedId === props.tile.id) return;
           props.onReorder(draggedId, props.tile.id, position);
         }}
-        onDragEnd={() => setDragPreview(null)}
+        onDragEnd={() => {
+          draggedTileId = null;
+          setDragPreview(null);
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
