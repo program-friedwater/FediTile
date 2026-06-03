@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { loadAccounts, onAccountsChanged, removeMisskeyAccount, upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
+import { loadAccounts, onAccountsChanged, removeMisskeyAccount, setDefaultMisskeyAccount, upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
 import { clearAuthTrace, readAuthTrace } from "../../integrations/misskey/authTrace";
 import { startMiAuth } from "../../integrations/misskey/miauth";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
-import { FieldRow, Input, Label } from "../../components/ui/Field";
+import { FieldRow, Input, Label, Select } from "../../components/ui/Field";
 import { Pill } from "../../components/ui/Pill";
 
 type Props = {
@@ -17,6 +17,7 @@ const AUTH_RESULT_PREFIX = "feditile:misskey-auth-result:";
 export function SettingsModal(props: Props) {
   const [instanceUrl, setInstanceUrl] = useState("");
   const [misskeyAccounts, setMisskeyAccounts] = useState<MisskeyAccount[]>([]);
+  const [defaultAccountId, setDefaultAccountId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [traceLines, setTraceLines] = useState<string[]>([]);
@@ -39,6 +40,7 @@ export function SettingsModal(props: Props) {
       loadAccounts()
         .then((a) => {
           setMisskeyAccounts(a.misskey);
+          setDefaultAccountId(a.defaultAccountId ?? "");
           setDebugLines((prev) => [`loadAccounts -> ${a.misskey.length} account(s)`, ...prev].slice(0, 12));
           setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
         })
@@ -55,6 +57,7 @@ export function SettingsModal(props: Props) {
       await upsertMisskeyAccount(event.data.account as MisskeyAccount);
       const next = await loadAccounts();
       setMisskeyAccounts(next.misskey);
+      setDefaultAccountId(next.defaultAccountId ?? "");
       setDebugLines((prev) => [`post-upsert -> ${next.misskey.length} account(s)`, ...prev].slice(0, 12));
       setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
     };
@@ -89,6 +92,7 @@ export function SettingsModal(props: Props) {
       }
       const next = await loadAccounts();
       setMisskeyAccounts(next.misskey);
+      setDefaultAccountId(next.defaultAccountId ?? "");
       setDebugLines((prev) => [`storage-consume -> ${next.misskey.length} account(s)`, ...prev].slice(0, 12));
       setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
     };
@@ -163,6 +167,26 @@ export function SettingsModal(props: Props) {
 
       {misskeyAccounts.length > 0 ? (
         <FieldRow>
+          <Label>Default Misskey account</Label>
+          <Select
+            value={defaultAccountId}
+            onChange={async (e) => {
+              const next = await setDefaultMisskeyAccount(e.target.value);
+              setMisskeyAccounts(next.misskey);
+              setDefaultAccountId(next.defaultAccountId ?? "");
+            }}
+          >
+            {misskeyAccounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {(account.name || (account.username ? `@${account.username}` : account.id))} · {account.instanceUrl}
+              </option>
+            ))}
+          </Select>
+        </FieldRow>
+      ) : null}
+
+      {misskeyAccounts.length > 0 ? (
+        <FieldRow>
           <Label>Connected Misskey accounts</Label>
           <div className="list">
             {misskeyAccounts.map((a) => (
@@ -184,6 +208,7 @@ export function SettingsModal(props: Props) {
                       await removeMisskeyAccount(a.id);
                       const next = await loadAccounts();
                       setMisskeyAccounts(next.misskey);
+                      setDefaultAccountId(next.defaultAccountId ?? "");
                     }}
                     title="Disconnect (local only)"
                   >

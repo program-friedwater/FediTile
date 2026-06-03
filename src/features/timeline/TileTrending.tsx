@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { loadAccounts } from "../../state/accounts/accountsStore";
+import { getDefaultMisskeyAccount, loadAccounts } from "../../state/accounts/accountsStore";
 import { fetchTrendingTags, type MisskeyTrendTag } from "../../integrations/misskey/api";
 
 const REFRESH_MS = 1000 * 60 * 3;
@@ -15,7 +15,7 @@ export function TileTrending() {
     const load = async () => {
       try {
         const accounts = await loadAccounts();
-        const account = accounts.misskey[0];
+        const account = getDefaultMisskeyAccount(accounts);
         if (!account) throw new Error("No Misskey account connected");
         const next = await fetchTrendingTags(account);
         if (canceled) return;

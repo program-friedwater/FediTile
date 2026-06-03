@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Notification } from "../../domain/types";
 import { PostCard } from "../../components/post/PostCard";
 import { Pill } from "../../components/ui/Pill";
-import { loadAccounts, onAccountsChanged } from "../../state/accounts/accountsStore";
+import { getDefaultMisskeyAccount, loadAccounts, onAccountsChanged } from "../../state/accounts/accountsStore";
 import { emitInspectIntent } from "../../state/events/inspectBus";
 import { fetchNotifications } from "../../integrations/misskey/api";
 import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
@@ -53,7 +53,7 @@ export function TileNotifications() {
     (async () => {
       try {
         const accounts = await loadAccounts();
-        const account = accounts.misskey[0];
+        const account = getDefaultMisskeyAccount(accounts);
         if (!account) throw new Error("No Misskey account connected");
 
         const [page, emojis] = await Promise.all([
@@ -94,7 +94,7 @@ export function TileNotifications() {
     setLoading(true);
     try {
       const accounts = await loadAccounts();
-      const account = accounts.misskey[0];
+      const account = getDefaultMisskeyAccount(accounts);
       if (!account) throw new Error("No Misskey account connected");
       const page = await fetchNotifications(account, {
         limit: PAGE_SIZE,

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { loadAccounts } from "../../state/accounts/accountsStore";
+import { getDefaultMisskeyAccount, loadAccounts } from "../../state/accounts/accountsStore";
 import { createNote } from "../../integrations/misskey/api";
 import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { Button } from "../../components/ui/Button";
@@ -52,7 +52,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
     (async () => {
       try {
         const accounts = await loadAccounts();
-        const account = accounts.misskey[0];
+        const account = getDefaultMisskeyAccount(accounts);
         if (!account) return;
         const next = await getEmojis(account);
         if (!canceled) setEmojis(next);
@@ -80,7 +80,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
     setPosting(true);
     try {
       const accounts = await loadAccounts();
-      const account = accounts.misskey[0];
+      const account = getDefaultMisskeyAccount(accounts);
       if (!account) throw new Error("No Misskey account connected. Connect from Settings first.");
 
       const vis =

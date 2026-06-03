@@ -110,6 +110,10 @@ export async function loadAccounts(): Promise<AccountsState> {
   return { version: 1, misskey, defaultAccountId: index.defaultAccountId ?? misskey[0]?.id };
 }
 
+export function getDefaultMisskeyAccount(accounts: AccountsState): MisskeyAccount | undefined {
+  return accounts.misskey.find((account) => account.id === accounts.defaultAccountId) ?? accounts.misskey[0];
+}
+
 export async function saveAccounts(next: AccountsState): Promise<void> {
   await ensureMigration();
   const misskey = normalizeAccounts(next.misskey);
@@ -119,6 +123,14 @@ export async function saveAccounts(next: AccountsState): Promise<void> {
   for (const id of prev?.misskeyIds ?? []) if (!keep.has(id)) localStorage.removeItem(accountKey(id));
   writeIndex({ version: 2, misskeyIds: misskey.map((account) => account.id), defaultAccountId: next.defaultAccountId ?? misskey[0]?.id });
   emitAccountsChanged();
+}
+
+export async function setDefaultMisskeyAccount(accountId: string): Promise<AccountsState> {
+  const current = await loadAccounts();
+  if (!current.misskey.some((account) => account.id === accountId)) return current;
+  const next = { ...current, defaultAccountId: accountId };
+  await saveAccounts(next);
+  return next;
 }
 
 export async function upsertMisskeyAccount(account: MisskeyAccount): Promise<AccountsState> {

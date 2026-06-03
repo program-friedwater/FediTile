@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Post } from "../../domain/types";
 import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
-import { loadAccounts } from "../../state/accounts/accountsStore";
+import { getDefaultMisskeyAccount, loadAccounts } from "../../state/accounts/accountsStore";
 import { createNote } from "../../integrations/misskey/api";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
@@ -38,7 +38,7 @@ export function PostActionModal(props: Props) {
     (async () => {
       try {
         const accounts = await loadAccounts();
-        const account = accounts.misskey[0];
+        const account = getDefaultMisskeyAccount(accounts);
         if (!account) return;
         const next = await getEmojis(account);
         if (!canceled) setEmojis(next);
@@ -61,7 +61,7 @@ export function PostActionModal(props: Props) {
     setStatus(null);
     try {
       const accounts = await loadAccounts();
-      const account = accounts.misskey[0];
+      const account = getDefaultMisskeyAccount(accounts);
       if (!account) throw new Error("No Misskey account connected.");
       if (!noteId) throw new Error("Missing note id.");
 

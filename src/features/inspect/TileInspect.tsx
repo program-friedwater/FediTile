@@ -4,7 +4,7 @@ import { onInspectIntent, type InspectIntent } from "../../state/events/inspectB
 import { Pill } from "../../components/ui/Pill";
 import { renderMfm } from "../../mfm/renderMfm";
 import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
-import { loadAccounts } from "../../state/accounts/accountsStore";
+import { getDefaultMisskeyAccount, loadAccounts } from "../../state/accounts/accountsStore";
 import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote, voteOnPoll } from "../../integrations/misskey/api";
 import { EmojiPickerModal } from "../timeline/EmojiPickerModal";
 import { PostActionModal } from "../timeline/PostActionModal";
@@ -34,7 +34,7 @@ export function TileInspect() {
     (async () => {
       try {
         const accounts = await loadAccounts();
-        const account = accounts.misskey[0];
+        const account = getDefaultMisskeyAccount(accounts);
         if (!account) return;
         const emojis = await getEmojis(account);
         if (canceled) return;
@@ -54,7 +54,7 @@ export function TileInspect() {
         setState({ kind: "post", post: intent.post, replies: [], loadedAt: nowIso() });
         try {
           const accounts = await loadAccounts();
-          const account = accounts.misskey[0];
+          const account = getDefaultMisskeyAccount(accounts);
           if (!account) return;
           const id = (intent.post.remoteId as any as string | undefined) ?? "";
           if (!id) return;
@@ -71,7 +71,7 @@ export function TileInspect() {
         setState({ kind: "author", author: intent.author, loadedAt: nowIso() });
         try {
           const accounts = await loadAccounts();
-          const account = accounts.misskey[0];
+          const account = getDefaultMisskeyAccount(accounts);
           if (!account) return;
           const remoteId = (intent.author.remoteId as any as string | undefined) ?? "";
           if (!remoteId) return;
@@ -137,7 +137,7 @@ export function TileInspect() {
               const noteId = (post.remoteId as any as string | undefined) ?? "";
               if (!noteId) return;
               const accounts = await loadAccounts();
-              const account = accounts.misskey[0];
+              const account = getDefaultMisskeyAccount(accounts);
               if (!account) return;
               const already = post.myReaction === reactionKey;
               try {
@@ -154,7 +154,7 @@ export function TileInspect() {
               if (!noteId) return;
               try {
                 const accounts = await loadAccounts();
-                const account = accounts.misskey[0];
+                const account = getDefaultMisskeyAccount(accounts);
                 if (!account) throw new Error("No Misskey account connected");
                 await voteOnPoll(account, { noteId, choice });
                 const fresh = await showNote(account, { noteId });
@@ -176,7 +176,7 @@ export function TileInspect() {
                   const noteId = ((state.post.repostOf?.remoteId ?? state.post.remoteId) as any as string | undefined) ?? "";
                   if (!noteId) return;
                   const accounts = await loadAccounts();
-                  const account = accounts.misskey[0];
+                  const account = getDefaultMisskeyAccount(accounts);
                   if (!account) return;
                   try {
                     await createNote(account, { renoteId: noteId, visibility: "public" });
@@ -230,7 +230,7 @@ export function TileInspect() {
           const noteId = (p.remoteId as any as string | undefined) ?? "";
           if (!noteId) return;
           const accounts = await loadAccounts();
-          const account = accounts.misskey[0];
+          const account = getDefaultMisskeyAccount(accounts);
           if (!account) return;
           try {
             await reactToNote(account, { noteId, reaction });

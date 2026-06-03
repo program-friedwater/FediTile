@@ -3,7 +3,7 @@ import type { Post } from "../../domain/types";
 import type { TileQuery } from "../../state/workspace/tileTypes";
 import { getMockTimelinePage } from "./mockData";
 import { VirtualList } from "./VirtualList";
-import { loadAccounts, onAccountsChanged } from "../../state/accounts/accountsStore";
+import { getDefaultMisskeyAccount, loadAccounts, onAccountsChanged } from "../../state/accounts/accountsStore";
 import { fetchTimeline } from "../../integrations/misskey/api";
 import { startTimelineStream } from "../../integrations/misskey/streaming";
 import { reactToNote, createNote, showNote, unreactToNote, voteOnPoll } from "../../integrations/misskey/api";
@@ -131,7 +131,7 @@ export function TileTimeline(props: Props) {
 
       try {
         const acc = await loadAccounts();
-        const account = acc.misskey[0];
+        const account = getDefaultMisskeyAccount(acc);
         if (!account) throw new Error("No Misskey account connected");
 
         const [page, emojis] = await Promise.all([
@@ -186,7 +186,7 @@ export function TileTimeline(props: Props) {
           const kind = props.query.kind;
           if (!(kind === "home" || kind === "local" || kind === "social" || kind === "federated")) return;
           const acc = await loadAccounts();
-          const account = acc.misskey[0];
+          const account = getDefaultMisskeyAccount(acc);
           if (!account) throw new Error("No Misskey account connected");
           const untilId = nextCursorRef.current;
           const page = await fetchTimeline(account, {
@@ -254,7 +254,7 @@ export function TileTimeline(props: Props) {
               if (mode !== "misskey") return;
               try {
                 const accounts = await loadAccounts();
-                const account = accounts.misskey[0];
+                const account = getDefaultMisskeyAccount(accounts);
                 if (!account) throw new Error("No Misskey account connected");
                 const emojis = await getEmojis(account);
                 setEmojiList(emojis);
@@ -269,7 +269,7 @@ export function TileTimeline(props: Props) {
               const noteId = (post.remoteId as any as string | undefined) ?? "";
               if (!noteId) return;
               const accounts = await loadAccounts();
-              const account = accounts.misskey[0];
+              const account = getDefaultMisskeyAccount(accounts);
               if (!account) return;
               // Ensure we have myReaction/reactions for older notes.
               let current = post;
@@ -310,7 +310,7 @@ export function TileTimeline(props: Props) {
               if (!noteId) return;
               try {
                 const accounts = await loadAccounts();
-                const account = accounts.misskey[0];
+                const account = getDefaultMisskeyAccount(accounts);
                 if (!account) throw new Error("No Misskey account connected");
                 await voteOnPoll(account, { noteId, choice });
                 const fresh = await showNote(account, { noteId });
@@ -351,7 +351,7 @@ export function TileTimeline(props: Props) {
               const noteId = ((p.repostOf?.remoteId ?? p.remoteId) as any as string | undefined) ?? "";
               if (!noteId) return;
               const accounts = await loadAccounts();
-              const account = accounts.misskey[0];
+              const account = getDefaultMisskeyAccount(accounts);
               if (!account) return;
               try {
                 const created = await createNote(account, { renoteId: noteId, visibility: "public" });
@@ -388,7 +388,7 @@ export function TileTimeline(props: Props) {
           const noteId = (p.remoteId as any as string | undefined) ?? "";
           if (!noteId) return;
           const accounts = await loadAccounts();
-          const account = accounts.misskey[0];
+          const account = getDefaultMisskeyAccount(accounts);
           if (!account) return;
           // optimistic update
           setItems((prev) =>
