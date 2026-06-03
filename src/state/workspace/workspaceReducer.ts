@@ -26,7 +26,7 @@ export type WorkspaceAction =
   | { type: "tile/add"; tile: { title: string; query: TileQuery; size: TileSize } }
   | { type: "tile/remove"; id: TileId }
   | { type: "tile/move"; id: TileId; delta: -1 | 1 }
-  | { type: "tile/reorder"; id: TileId; targetId: TileId }
+  | { type: "tile/reorder"; id: TileId; targetId: TileId; position: "before" | "after" }
   | { type: "tile/resize"; id: TileId; size: TileSize }
   | { type: "tile/setWidthPx"; id: TileId; widthPx: number }
   | { type: "tile/setHeightPx"; id: TileId; heightPx: number }
@@ -148,7 +148,9 @@ export function workspaceReducer(state: Workspace, action: WorkspaceAction): Wor
       if (from < 0 || to < 0) return state;
       const tiles = activeTab.tiles.slice();
       const [item] = tiles.splice(from, 1);
-      tiles.splice(to, 0, item);
+      const targetIndex = tiles.findIndex((x) => x.id === action.targetId);
+      const insertAt = action.position === "after" ? targetIndex + 1 : targetIndex;
+      tiles.splice(insertAt, 0, item);
       return updateActiveTab(state, { ...activeTab, tiles, layout: buildRowLayout(tiles.map((x) => x.id)) }, now);
     }
     case "tile/resize":

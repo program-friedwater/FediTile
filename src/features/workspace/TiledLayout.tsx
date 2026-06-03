@@ -7,7 +7,7 @@ type Props = {
   tilesById: Map<TileId, Tile>;
   activeTileId: TileId | null;
   onActivate: (id: TileId) => void;
-  onReorder: (id: TileId, targetId: TileId) => void;
+  onReorder: (id: TileId, targetId: TileId, position: "before" | "after") => void;
   onSplit: (targetId: TileId, dir: "row" | "col") => void;
   onSetSplitRatio: (path: Array<"a" | "b">, ratio: number) => void;
   onRemove: (id: TileId) => void;
@@ -30,7 +30,7 @@ export function TiledLayout(props: Props) {
             tile={tile}
             active={tile.id === props.activeTileId}
             onActivate={() => props.onActivate(tile.id)}
-            onReorder={(id, targetId) => props.onReorder(id, targetId)}
+            onReorder={(id, targetId, position) => props.onReorder(id, targetId, position)}
             onMoveLeft={() => {}}
             onMoveRight={() => {}}
             onResize={() => {}}

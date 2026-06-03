@@ -84,7 +84,7 @@ function WorkspaceScreen() {
               tilesById={new Map(activeTab.tiles.map((t) => [t.id, t]))}
               activeTileId={activeTileId}
               onActivate={(id) => setActiveTileId(id)}
-              onReorder={(id, targetId) => dispatch({ type: "tile/reorder", id, targetId })}
+              onReorder={(id, targetId, position) => dispatch({ type: "tile/reorder", id, targetId, position })}
               onSplit={(targetId, dir) => dispatch({ type: "layout/split", targetId, dir, newTile: { title: "Split", query: { kind: "local" }, size: "m" } })}
               onSetSplitRatio={(path, ratio) => dispatch({ type: "layout/setRatio", path, ratio })}
               onRemove={(id) => dispatch({ type: "tile/remove", id })}

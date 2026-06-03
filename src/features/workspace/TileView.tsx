@@ -12,7 +12,7 @@ type Props = {
   tile: Tile;
   active: boolean;
   onActivate: () => void;
-  onReorder?: (id: TileId, targetId: TileId) => void;
+  onReorder?: (id: TileId, targetId: TileId, position: "before" | "after") => void;
   onMoveLeft: () => void;
   onMoveRight: () => void;
   onResize: (size: TileSize) => void;
@@ -54,6 +54,7 @@ export function TileView(props: Props) {
   const [renaming, setRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState(props.tile.title);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dragPreview, setDragPreview] = useState<"before" | "after" | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const kindLabel = tileKindLabel(props.tile.query.kind);
@@ -104,6 +105,7 @@ export function TileView(props: Props) {
     <div
       className="tile"
       data-active={props.active ? "true" : "false"}
+      data-drag-preview={dragPreview ?? undefined}
       style={{
         width: resizable ? widthPx : "100%",
         height: resizable ? heightPx : "100%",
@@ -156,19 +158,34 @@ export function TileView(props: Props) {
           e.dataTransfer.setData("text/feditile-tile-id", props.tile.id);
           e.dataTransfer.effectAllowed = "move";
           props.onActivate();
+          setDragPreview(null);
         }}
         onDragOver={(e) => {
           if (!props.onReorder) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
+          const draggedId = e.dataTransfer.getData("text/feditile-tile-id") as TileId;
+          if (!draggedId || draggedId === props.tile.id) {
+            setDragPreview(null);
+            return;
+          }
+          const rect = e.currentTarget.getBoundingClientRect();
+          const position = e.clientX < rect.left + rect.width / 2 ? "before" : "after";
+          setDragPreview(position);
+        }}
+        onDragLeave={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragPreview(null);
         }}
         onDrop={(e) => {
           if (!props.onReorder) return;
           e.preventDefault();
           const draggedId = e.dataTransfer.getData("text/feditile-tile-id") as TileId;
+          const position = dragPreview ?? "before";
+          setDragPreview(null);
           if (!draggedId || draggedId === props.tile.id) return;
-          props.onReorder(draggedId, props.tile.id);
+          props.onReorder(draggedId, props.tile.id, position);
         }}
+        onDragEnd={() => setDragPreview(null)}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();

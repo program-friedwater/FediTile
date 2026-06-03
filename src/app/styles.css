@@ -299,6 +299,27 @@ a:hover {
   border-color: var(--accent);
 }
 
+.tile[data-drag-preview="before"]::after,
+.tile[data-drag-preview="after"]::after {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  width: 4px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 3;
+  border-radius: 999px;
+}
+
+.tile[data-drag-preview="before"]::after {
+  left: -2px;
+}
+
+.tile[data-drag-preview="after"]::after {
+  right: -2px;
+}
+
 .tile:focus-within {
   outline: none;
 }
