@@ -14,6 +14,10 @@ type Props = {
 
 const AUTH_RESULT_PREFIX = "feditile:misskey-auth-result:";
 
+function isElectronRuntime() {
+  return window.feditileDesktop?.platform === "electron" || navigator.userAgent.includes("Electron");
+}
+
 export function SettingsModal(props: Props) {
   const [instanceUrl, setInstanceUrl] = useState("");
   const [misskeyAccounts, setMisskeyAccounts] = useState<MisskeyAccount[]>([]);
@@ -23,9 +27,7 @@ export function SettingsModal(props: Props) {
   const [traceLines, setTraceLines] = useState<string[]>([]);
 
   const callbackUrl = useMemo(() => {
-    if (window.feditileDesktop?.platform === "electron") {
-      return "feditile://auth/misskey";
-    }
+    if (isElectronRuntime()) return "feditile://auth/misskey";
     const current = new URL(window.location.href);
     if (current.protocol === "http:" || current.protocol === "https:") {
       return new URL("/auth/misskey", current.origin).toString();
