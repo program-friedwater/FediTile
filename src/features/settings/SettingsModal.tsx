@@ -14,8 +14,8 @@ type Props = {
 
 const AUTH_RESULT_PREFIX = "feditile:misskey-auth-result:";
 
-function isElectronRuntime() {
-  return window.feditileDesktop?.platform === "electron" || navigator.userAgent.includes("Electron");
+function isDesktopRuntime() {
+  return window.feditileDesktop?.platform === "tauri";
 }
 
 export function SettingsModal(props: Props) {
@@ -28,7 +28,7 @@ export function SettingsModal(props: Props) {
   const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!props.isOpen || !isElectronRuntime()) return;
+    if (!props.isOpen || !isDesktopRuntime()) return;
     let cancelled = false;
 
     const loadAuthConfig = () => {
@@ -51,10 +51,10 @@ export function SettingsModal(props: Props) {
 
   const callbackUrl = useMemo(() => {
     const current = new URL(window.location.href);
-    if (isElectronRuntime() && (current.protocol === "http:" || current.protocol === "https:")) {
+    if (isDesktopRuntime() && (current.protocol === "http:" || current.protocol === "https:")) {
       return new URL("/auth/misskey", current.origin).toString();
     }
-    if (isElectronRuntime()) return desktopCallbackBaseUrl ?? "";
+    if (isDesktopRuntime()) return desktopCallbackBaseUrl ?? "";
     if (current.protocol === "http:" || current.protocol === "https:") {
       return new URL("/auth/misskey", current.origin).toString();
     }
@@ -160,11 +160,11 @@ export function SettingsModal(props: Props) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
           <Pill>{misskeyAccounts.length} account(s)</Pill>
           <Button
-            disabled={isElectronRuntime() && !callbackUrl}
+            disabled={isDesktopRuntime() && !callbackUrl}
             onClick={() => {
               setError(null);
               try {
-                if (isElectronRuntime() && !callbackUrl) {
+                if (isDesktopRuntime() && !callbackUrl) {
                   throw new Error("Desktop auth receiver is still starting. Please wait a moment and try again.");
                 }
                 const { authorizeUrl } = startMiAuth({
@@ -182,7 +182,8 @@ export function SettingsModal(props: Props) {
                     "write:drive",
                   ],
                 });
-                window.open(authorizeUrl, `feditile-misskey-auth-${Date.now()}`, "popup,width=520,height=780");
+                if (isDesktopRuntime() && window.feditileDesktop?.openAuthWindow) void window.feditileDesktop.openAuthWindow(authorizeUrl);
+                else window.open(authorizeUrl, `feditile-misskey-auth-${Date.now()}`, "popup,width=520,height=780");
                 setDebugLines((prev) => [`start -> ${instanceUrl}`, ...prev].slice(0, 12));
                 setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
               } catch (e) {
@@ -197,7 +198,7 @@ export function SettingsModal(props: Props) {
           Requested permissions: read:account, read:notes, read:notifications, write:notes, write:reactions, write:votes, read/write:drive
         </Pill>
         <Pill>Callback: {callbackUrl}</Pill>
-        {isElectronRuntime() ? <Pill>Desktop auth receiver: {callbackUrl || "starting..."}</Pill> : null}
+        {isDesktopRuntime() ? <Pill>Desktop auth receiver: {callbackUrl || "starting..."}</Pill> : null}
         {error ? <Pill tone="danger">{error}</Pill> : null}
       </FieldRow>
 

@@ -53,7 +53,7 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  font-size: 14px;
+  font-size: 15px;
 }
 
 a {
@@ -89,6 +89,7 @@ a:hover {
   color: var(--text);
   border-radius: 999px;
   padding: 8px 12px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   box-shadow: none;
@@ -335,7 +336,7 @@ a:hover {
 
 .tileTypeLabel {
   font-weight: 800;
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0;
   text-transform: none;
   color: var(--text);
@@ -1043,7 +1044,7 @@ a:hover {
 }
 
 .floatingSub {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.1;
 }
@@ -1086,6 +1087,7 @@ a:hover {
 
 .modalHeader {
   padding: 12px 14px;
+  font-size: 16px;
   font-weight: 800;
   border-bottom: 1px solid var(--border);
 }
@@ -1134,7 +1136,7 @@ a:hover {
 }
 
 .label {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-weight: 700;
 }
@@ -1147,6 +1149,7 @@ a:hover {
   background: var(--panel);
   color: var(--text);
   padding: 10px 12px;
+  font-size: 14px;
   outline: none;
 }
 
@@ -1168,7 +1171,7 @@ textarea.input {
 }
 
 .pill {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   padding: 4px 8px;
   border-radius: 999px;
@@ -1216,7 +1219,7 @@ textarea.input {
 
 .listTitle {
   font-weight: 800;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .listTitleRow {
@@ -1236,7 +1239,7 @@ textarea.input {
 
 .listHandleMuted {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 650;
   flex: 0 0 auto;
   max-width: 48%;
@@ -1265,7 +1268,7 @@ textarea.input {
 
 .trendRank {
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.4;
 }
@@ -1279,7 +1282,7 @@ textarea.input {
   padding: 4px 8px;
   border: 1px solid var(--border);
   background: var(--panel);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text);
   display: flex;
@@ -1434,7 +1437,7 @@ textarea.input {
   left: 8px;
   bottom: 8px;
   padding: 3px 8px;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 900;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.55);
@@ -1443,7 +1446,7 @@ textarea.input {
 
 .listRenoteMeta {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 12px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   opacity: 0.7;
@@ -1475,7 +1478,7 @@ textarea.input {
   display: flex;
   gap: 8px;
   align-items: baseline;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
   font-weight: 700;
   min-width: 0;
@@ -1493,7 +1496,7 @@ textarea.input {
 
 .replySnippet {
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   line-height: 1.35;
   max-height: 5.2em;
@@ -1510,7 +1513,7 @@ textarea.input {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 12px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -1551,7 +1554,7 @@ textarea.input {
 
 .pollChoiceVotes {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 
