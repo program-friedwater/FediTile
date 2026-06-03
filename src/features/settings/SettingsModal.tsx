@@ -25,9 +25,12 @@ export function SettingsModal(props: Props) {
   const [error, setError] = useState<string | null>(null);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [traceLines, setTraceLines] = useState<string[]>([]);
+  const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(window.feditileDesktop?.getAuthConfig?.().authCallbackBaseUrl ?? null);
+
+  useEffect(() => window.feditileDesktop?.onAuthConfig?.((config) => setDesktopCallbackBaseUrl(config.authCallbackBaseUrl)), []);
 
   const callbackUrl = useMemo(() => {
-    if (isElectronRuntime()) return "feditile://auth/misskey";
+    if (isElectronRuntime()) return desktopCallbackBaseUrl ?? "feditile://auth/misskey";
     const current = new URL(window.location.href);
     if (current.protocol === "http:" || current.protocol === "https:") {
       return new URL("/auth/misskey", current.origin).toString();
@@ -35,7 +38,7 @@ export function SettingsModal(props: Props) {
     current.hash = "#/auth/misskey";
     current.search = "";
     return current.toString();
-  }, []);
+  }, [desktopCallbackBaseUrl]);
 
   useEffect(() => {
     if (!props.isOpen) return;
@@ -167,6 +170,7 @@ export function SettingsModal(props: Props) {
           Requested permissions: read:account, read:notes, read:notifications, write:notes, write:reactions, write:votes, read/write:drive
         </Pill>
         <Pill>Callback: {callbackUrl}</Pill>
+        {isElectronRuntime() ? <Pill>Desktop auth receiver: {desktopCallbackBaseUrl ?? "starting..."}</Pill> : null}
         {error ? <Pill tone="danger">{error}</Pill> : null}
       </FieldRow>
 

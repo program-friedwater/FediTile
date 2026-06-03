@@ -1,4 +1,5 @@
 import { app, BrowserWindow, shell } from "electron";
+import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -9,6 +10,8 @@ const preloadPath = path.resolve(__dirname, "./preload.mjs");
 
 let mainWindow = null;
 let pendingAuthUrl = null;
+let authServer = null;
+let authCallbackBaseUrl = null;
 
 function sendAuthUrl(url) {
   if (mainWindow?.webContents.isLoading()) {
@@ -16,6 +19,39 @@ function sendAuthUrl(url) {
     return;
   }
   mainWindow?.webContents.send("feditile:auth-callback", url);
+}
+
+
+function sendAuthConfig() {
+  if (!mainWindow) return;
+  mainWindow.webContents.send("feditile:auth-config", { authCallbackBaseUrl });
+}
+
+function startAuthServer() {
+  return new Promise((resolve, reject) => {
+    authServer = http.createServer((req, res) => {
+      const origin = `http://${req.headers.host ?? "127.0.0.1"}`;
+      const url = new URL(req.url ?? "/", origin);
+      if (url.pathname !== "/auth/misskey") {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Not found");
+        return;
+      }
+      sendAuthUrl(url.toString());
+      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      res.end(`<!doctype html><html><body style="background:#0d1117;color:#e6edf3;font-family:system-ui;padding:24px"><h1>FediTile</h1><p>Authentication received. You can return to the app.</p></body></html>`);
+    });
+    authServer.once("error", reject);
+    authServer.listen(0, "127.0.0.1", () => {
+      const address = authServer?.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("Failed to resolve auth callback server address"));
+        return;
+      }
+      authCallbackBaseUrl = `http://127.0.0.1:${address.port}/auth/misskey`;
+      resolve(authCallbackBaseUrl);
+    });
+  });
 }
 
 function createWindow() {
@@ -39,6 +75,7 @@ function createWindow() {
   });
 
   mainWindow.webContents.on("did-finish-load", () => {
+    sendAuthConfig();
     if (pendingAuthUrl) {
       sendAuthUrl(pendingAuthUrl);
       pendingAuthUrl = null;
@@ -69,12 +106,13 @@ app.on("open-url", (event, url) => {
   sendAuthUrl(url);
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   if (process.defaultApp && process.argv.length >= 2) {
     app.setAsDefaultProtocolClient("feditile", process.execPath, [path.resolve(process.argv[1])]);
   } else {
     app.setAsDefaultProtocolClient("feditile");
   }
+  await startAuthServer();
   createWindow();
 
   const initialUrl = extractProtocolUrl(process.argv);
@@ -86,5 +124,7 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  authServer?.close();
+  authServer = null;
   if (process.platform !== "darwin") app.quit();
 });
