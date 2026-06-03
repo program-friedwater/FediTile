@@ -29,6 +29,27 @@ function WorkspaceScreen() {
   const subtitle = useMemo(() => (tileCount === 0 ? "No tiles yet. Add one to get started." : `${tileCount} tile${tileCount === 1 ? "" : "s"} • timeline-first`), [tileCount]);
   const activeTabIndex = activeTab ? workspace.tabs.findIndex((tab) => tab.id === activeTab.id) : -1;
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const typing =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        !!target?.closest("[contenteditable='true']");
+      if (typing) return;
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (activeTabIndex < 0) return;
+      const nextIndex = e.key === "ArrowLeft" ? Math.max(0, activeTabIndex - 1) : Math.min(workspace.tabs.length - 1, activeTabIndex + 1);
+      const nextTab = workspace.tabs[nextIndex];
+      if (!nextTab) return;
+      dispatch({ type: "tab/activate", id: nextTab.id });
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [activeTabIndex, dispatch, workspace.tabs]);
+
   return (
     <div className="appShell">
       <main className="workspace" data-modal-open={settingsOpen ? "true" : "false"}>
@@ -64,14 +85,6 @@ function WorkspaceScreen() {
             }}
             tabIndex={0}
             onKeyDown={(e) => {
-              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
-                if (activeTabIndex < 0) return;
-                const nextIndex = e.key === "ArrowLeft" ? Math.max(0, activeTabIndex - 1) : Math.min(workspace.tabs.length - 1, activeTabIndex + 1);
-                const nextTab = workspace.tabs[nextIndex];
-                if (nextTab) dispatch({ type: "tab/activate", id: nextTab.id });
-                e.preventDefault();
-                return;
-              }
               if (e.key === "a" && (e.metaKey || e.ctrlKey)) setAddOpen(true);
             }}
             style={{ outline: "none" }}
