@@ -51,8 +51,15 @@ export async function finishMiAuth(args: {
   if (!res.ok) throw new Error(`MiAuth check failed: ${res.status}`);
   const json = (await res.json()) as any;
   const token = json?.token as string | undefined;
-  const user = json?.user as any;
   if (!token) throw new Error("MiAuth did not return a token");
+
+  const profileRes = await fetch(`${instanceUrl}/api/i`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ i: token }),
+  });
+  if (!profileRes.ok) throw new Error(`Failed to resolve authorized account: ${profileRes.status}`);
+  const user = (await profileRes.json()) as any;
 
   const now = new Date().toISOString();
   const stableUserKey =
