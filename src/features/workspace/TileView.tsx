@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import type { Tile, TileSize } from "../../state/workspace/tileTypes";
+import type { Tile, TileId, TileSize } from "../../state/workspace/tileTypes";
 import { tileKindLabel } from "../../state/workspace/tileTypes";
 import { TileTimeline } from "../timeline/TileTimeline";
 import { TileCompose } from "../compose/TileCompose";
@@ -12,6 +12,7 @@ type Props = {
   tile: Tile;
   active: boolean;
   onActivate: () => void;
+  onReorder?: (id: TileId, targetId: TileId) => void;
   onMoveLeft: () => void;
   onMoveRight: () => void;
   onResize: (size: TileSize) => void;
@@ -150,6 +151,24 @@ export function TileView(props: Props) {
       ) : null}
       <div
         className="tileHeader"
+        draggable
+        onDragStart={(e) => {
+          e.dataTransfer.setData("text/feditile-tile-id", props.tile.id);
+          e.dataTransfer.effectAllowed = "move";
+          props.onActivate();
+        }}
+        onDragOver={(e) => {
+          if (!props.onReorder) return;
+          e.preventDefault();
+          e.dataTransfer.dropEffect = "move";
+        }}
+        onDrop={(e) => {
+          if (!props.onReorder) return;
+          e.preventDefault();
+          const draggedId = e.dataTransfer.getData("text/feditile-tile-id") as TileId;
+          if (!draggedId || draggedId === props.tile.id) return;
+          props.onReorder(draggedId, props.tile.id);
+        }}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
