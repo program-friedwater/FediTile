@@ -27,6 +27,7 @@ function WorkspaceScreen() {
 
   const tileCount = activeTab?.tiles.length ?? 0;
   const subtitle = useMemo(() => (tileCount === 0 ? "No tiles yet. Add one to get started." : `${tileCount} tile${tileCount === 1 ? "" : "s"} • timeline-first`), [tileCount]);
+  const activeTabIndex = activeTab ? workspace.tabs.findIndex((tab) => tab.id === activeTab.id) : -1;
 
   return (
     <div className="appShell">
@@ -63,6 +64,14 @@ function WorkspaceScreen() {
             }}
             tabIndex={0}
             onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+                if (activeTabIndex < 0) return;
+                const nextIndex = e.key === "ArrowLeft" ? Math.max(0, activeTabIndex - 1) : Math.min(workspace.tabs.length - 1, activeTabIndex + 1);
+                const nextTab = workspace.tabs[nextIndex];
+                if (nextTab) dispatch({ type: "tab/activate", id: nextTab.id });
+                e.preventDefault();
+                return;
+              }
               if (!activeTileId) return;
               if (e.key === "ArrowLeft") dispatch({ type: "tile/move", id: activeTileId, delta: -1 });
               else if (e.key === "ArrowRight") dispatch({ type: "tile/move", id: activeTileId, delta: 1 });
