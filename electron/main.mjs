@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const entryPath = path.resolve(__dirname, "./main.mjs");
 const rendererUrl = process.env.VITE_DEV_SERVER_URL;
 const distPath = path.resolve(__dirname, "../dist/index.html");
 const preloadPath = path.resolve(__dirname, "./preload.mjs");
@@ -70,7 +71,8 @@ app.on("open-url", (event, url) => {
 });
 
 app.whenReady().then(() => {
-  app.setAsDefaultProtocolClient("feditile");
+  if (app.isPackaged) app.setAsDefaultProtocolClient("feditile");
+  else app.setAsDefaultProtocolClient("feditile", process.execPath, [entryPath]);
   createWindow();
 
   const initialUrl = extractProtocolUrl(process.argv);
