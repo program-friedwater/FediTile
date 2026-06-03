@@ -64,7 +64,7 @@ function WorkspaceScreen() {
             }}
             tabIndex={0}
             onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+              if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
                 if (activeTabIndex < 0) return;
                 const nextIndex = e.key === "ArrowLeft" ? Math.max(0, activeTabIndex - 1) : Math.min(workspace.tabs.length - 1, activeTabIndex + 1);
                 const nextTab = workspace.tabs[nextIndex];
@@ -72,10 +72,7 @@ function WorkspaceScreen() {
                 e.preventDefault();
                 return;
               }
-              if (!activeTileId) return;
-              if (e.key === "ArrowLeft") dispatch({ type: "tile/move", id: activeTileId, delta: -1 });
-              else if (e.key === "ArrowRight") dispatch({ type: "tile/move", id: activeTileId, delta: 1 });
-              else if (e.key === "a" && (e.metaKey || e.ctrlKey)) setAddOpen(true);
+              if (e.key === "a" && (e.metaKey || e.ctrlKey)) setAddOpen(true);
             }}
             style={{ outline: "none" }}
           >
