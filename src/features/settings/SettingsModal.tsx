@@ -28,17 +28,26 @@ export function SettingsModal(props: Props) {
   const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!props.isOpen || !isElectronRuntime()) return;
     let cancelled = false;
-    if (!isElectronRuntime()) return;
-    window.feditileDesktop?.getAuthConfig?.().then((config) => {
-      if (!cancelled) setDesktopCallbackBaseUrl(config.authCallbackBaseUrl);
-    }).catch(() => {
-      if (!cancelled) setDesktopCallbackBaseUrl(null);
-    });
+
+    const loadAuthConfig = () => {
+      window.feditileDesktop?.getAuthConfig?.()
+        .then((config) => {
+          if (!cancelled) setDesktopCallbackBaseUrl(config.authCallbackBaseUrl);
+        })
+        .catch(() => {
+          if (!cancelled) setDesktopCallbackBaseUrl(null);
+        });
+    };
+
+    loadAuthConfig();
+    const timer = window.setInterval(loadAuthConfig, 1000);
     return () => {
       cancelled = true;
+      window.clearInterval(timer);
     };
-  }, []);
+  }, [props.isOpen]);
 
   const callbackUrl = useMemo(() => {
     if (isElectronRuntime()) return desktopCallbackBaseUrl ?? "";
