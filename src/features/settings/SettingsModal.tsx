@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadAccounts, onAccountsChanged, removeMisskeyAccount, upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
+import { clearAuthTrace, readAuthTrace } from "../../integrations/misskey/authTrace";
 import { startMiAuth } from "../../integrations/misskey/miauth";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
@@ -11,10 +12,14 @@ type Props = {
   onClose: () => void;
 };
 
+const AUTH_RESULT_PREFIX = "feditile:misskey-auth-result:";
+
 export function SettingsModal(props: Props) {
   const [instanceUrl, setInstanceUrl] = useState("");
   const [misskeyAccounts, setMisskeyAccounts] = useState<MisskeyAccount[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [debugLines, setDebugLines] = useState<string[]>([]);
+  const [traceLines, setTraceLines] = useState<string[]>([]);
 
   const callbackUrl = useMemo(() => {
     const current = new URL(window.location.href);
@@ -29,9 +34,14 @@ export function SettingsModal(props: Props) {
   useEffect(() => {
     if (!props.isOpen) return;
     setError(null);
+    setDebugLines([]);
     const refresh = () =>
       loadAccounts()
-        .then((a) => setMisskeyAccounts(a.misskey))
+        .then((a) => {
+          setMisskeyAccounts(a.misskey);
+          setDebugLines((prev) => [`loadAccounts -> ${a.misskey.length} account(s)`, ...prev].slice(0, 12));
+          setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
+        })
         .catch((e) => setError(`Failed to load accounts: ${String(e)}`));
     refresh();
     return onAccountsChanged(refresh);
@@ -41,13 +51,59 @@ export function SettingsModal(props: Props) {
     const onMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "feditile:misskey-auth-complete" || !event.data.account) return;
+      setDebugLines((prev) => [`message -> ${event.data.account.id}`, ...prev].slice(0, 12));
       await upsertMisskeyAccount(event.data.account as MisskeyAccount);
       const next = await loadAccounts();
       setMisskeyAccounts(next.misskey);
+      setDebugLines((prev) => [`post-upsert -> ${next.misskey.length} account(s)`, ...prev].slice(0, 12));
+      setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
   }, []);
+
+  useEffect(() => {
+    if (!props.isOpen) return;
+
+    const consumeAuthResults = async () => {
+      const keys = Object.keys(localStorage).filter((key) => key.startsWith(AUTH_RESULT_PREFIX));
+      if (keys.length === 0) return;
+      for (const key of keys) {
+        try {
+          const raw = localStorage.getItem(key);
+          if (!raw) continue;
+          const parsed = JSON.parse(raw) as { ok?: boolean; error?: string; account?: MisskeyAccount };
+          const account = parsed.account;
+          if (account) {
+            setDebugLines((prev) => [`storage-result -> ${account.id}`, ...prev].slice(0, 12));
+            await upsertMisskeyAccount(account);
+            setError(null);
+          } else if (parsed.error) {
+            setDebugLines((prev) => [`storage-error -> ${parsed.error}`, ...prev].slice(0, 12));
+          }
+        } catch (e) {
+          setDebugLines((prev) => [`storage-parse-error -> ${String(e)}`, ...prev].slice(0, 12));
+        } finally {
+          localStorage.removeItem(key);
+        }
+      }
+      const next = await loadAccounts();
+      setMisskeyAccounts(next.misskey);
+      setDebugLines((prev) => [`storage-consume -> ${next.misskey.length} account(s)`, ...prev].slice(0, 12));
+      setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
+    };
+
+    consumeAuthResults();
+    const timer = window.setInterval(consumeAuthResults, 800);
+    return () => window.clearInterval(timer);
+  }, [props.isOpen]);
+
+  const storageKeys = useMemo(() => {
+    if (!props.isOpen) return [];
+    return Object.keys(localStorage)
+      .filter((key) => key.startsWith("accounts.") || key.startsWith("feditile-accounts") || key.startsWith(AUTH_RESULT_PREFIX))
+      .sort();
+  }, [props.isOpen, misskeyAccounts.length, debugLines.length]);
 
   if (!props.isOpen) return null;
 
@@ -87,7 +143,9 @@ export function SettingsModal(props: Props) {
                     "write:drive",
                   ],
                 });
-                window.open(authorizeUrl, "feditile-misskey-auth", "popup,width=520,height=780");
+                window.open(authorizeUrl, `feditile-misskey-auth-${Date.now()}`, "popup,width=520,height=780");
+                setDebugLines((prev) => [`start -> ${instanceUrl}`, ...prev].slice(0, 12));
+                setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
               } catch (e) {
                 setError(String(e));
               }
@@ -99,6 +157,7 @@ export function SettingsModal(props: Props) {
         <Pill>
           Requested permissions: read:account, read:notes, read:notifications, write:notes, write:reactions, write:votes, read/write:drive
         </Pill>
+        <Pill>Callback: {callbackUrl}</Pill>
         {error ? <Pill tone="danger">{error}</Pill> : null}
       </FieldRow>
 
@@ -150,6 +209,34 @@ export function SettingsModal(props: Props) {
       <FieldRow>
         <Label>Storage</Label>
         <Pill>Workspace is stored in localStorage.</Pill>
+      </FieldRow>
+
+      <FieldRow>
+        <Label>Auth debug</Label>
+        <div className="list">
+          <div className="listItem">
+            <div className="listMeta">Keys: {storageKeys.length > 0 ? storageKeys.join(", ") : "(none)"}</div>
+            <div className="listMeta" style={{ marginTop: 6 }}>
+              Events:
+              {debugLines.length > 0 ? ` ${debugLines.join(" | ")}` : " (none)"}
+            </div>
+            <div className="listMeta" style={{ marginTop: 6 }}>
+              Trace:
+              {traceLines.length > 0 ? ` ${traceLines.join(" | ")}` : " (none)"}
+            </div>
+            <div style={{ marginTop: 8 }}>
+              <Button
+                onClick={() => {
+                  clearAuthTrace();
+                  setTraceLines([]);
+                  setDebugLines([]);
+                }}
+              >
+                Clear auth debug
+              </Button>
+            </div>
+          </div>
+        </div>
       </FieldRow>
     </Modal>
   );
