@@ -15,7 +15,7 @@ type Props = {
   tile: Tile;
   active: boolean;
   onActivate: () => void;
-  onReorder?: (id: TileId, targetId: TileId, position: "before" | "after") => void;
+  onSwap?: (id: TileId, targetId: TileId) => void;
   onMoveLeft: () => void;
   onMoveRight: () => void;
   onResize: (size: TileSize) => void;
@@ -57,7 +57,7 @@ export function TileView(props: Props) {
   const [renaming, setRenaming] = useState(false);
   const [titleDraft, setTitleDraft] = useState(props.tile.title);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dragPreview, setDragPreview] = useState<"before" | "after" | null>(null);
+  const [dragPreview, setDragPreview] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const kindLabel = tileKindLabel(props.tile.query.kind);
@@ -108,32 +108,29 @@ export function TileView(props: Props) {
     return ((dataTransfer?.getData("text/feditile-tile-id") || dataTransfer?.getData("text/plain")) as TileId) || draggedTileId;
   }
 
-  function updateDragPreview(clientX: number, currentTarget: HTMLDivElement, dataTransfer: DataTransfer | null) {
-    if (!props.onReorder) return;
+  function updateDragPreview(dataTransfer: DataTransfer | null) {
+    if (!props.onSwap) return;
     const draggedId = readDraggedTileId(dataTransfer);
     if (!draggedId || draggedId === props.tile.id) {
-      setDragPreview(null);
+      setDragPreview(false);
       return;
     }
-    const rect = currentTarget.getBoundingClientRect();
-    const position = clientX < rect.left + rect.width / 2 ? "before" : "after";
-    setDragPreview(position);
+    setDragPreview(true);
   }
 
   function handleDrop(dataTransfer: DataTransfer | null) {
-    if (!props.onReorder) return;
+    if (!props.onSwap) return;
     const draggedId = readDraggedTileId(dataTransfer);
-    const position = dragPreview ?? "before";
-    setDragPreview(null);
+    setDragPreview(false);
     if (!draggedId || draggedId === props.tile.id) return;
-    props.onReorder(draggedId, props.tile.id, position);
+    props.onSwap(draggedId, props.tile.id);
   }
 
   return (
     <div
       className="tile"
       data-active={props.active ? "true" : "false"}
-      data-drag-preview={dragPreview ?? undefined}
+      data-drag-preview={dragPreview ? "swap" : undefined}
       style={{
         width: resizable ? widthPx : "100%",
         height: resizable ? heightPx : "100%",
@@ -144,16 +141,16 @@ export function TileView(props: Props) {
       }}
       onMouseDown={props.onActivate}
       onDragOver={(e) => {
-        if (!props.onReorder) return;
+        if (!props.onSwap) return;
         e.preventDefault();
         e.dataTransfer.dropEffect = "move";
-        updateDragPreview(e.clientX, e.currentTarget, e.dataTransfer);
+        updateDragPreview(e.dataTransfer);
       }}
       onDragLeave={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragPreview(null);
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDragPreview(false);
       }}
       onDrop={(e) => {
-        if (!props.onReorder) return;
+        if (!props.onSwap) return;
         e.preventDefault();
         handleDrop(e.dataTransfer);
       }}
@@ -202,27 +199,25 @@ export function TileView(props: Props) {
           e.dataTransfer.setData("text/plain", props.tile.id);
           e.dataTransfer.effectAllowed = "move";
           props.onActivate();
-          setDragPreview(null);
+          setDragPreview(false);
         }}
         onDragOver={(e) => {
-          if (!props.onReorder) return;
+          if (!props.onSwap) return;
           e.preventDefault();
           e.dataTransfer.dropEffect = "move";
-          const tileEl = e.currentTarget.closest(".tile");
-          if (!(tileEl instanceof HTMLDivElement)) return;
-          updateDragPreview(e.clientX, tileEl, e.dataTransfer);
+          updateDragPreview(e.dataTransfer);
         }}
         onDragLeave={(e) => {
-          if (!e.currentTarget.closest(".tile")?.contains(e.relatedTarget as Node | null)) setDragPreview(null);
+          if (!e.currentTarget.closest(".tile")?.contains(e.relatedTarget as Node | null)) setDragPreview(false);
         }}
         onDrop={(e) => {
-          if (!props.onReorder) return;
+          if (!props.onSwap) return;
           e.preventDefault();
           handleDrop(e.dataTransfer);
         }}
         onDragEnd={() => {
           draggedTileId = null;
-          setDragPreview(null);
+          setDragPreview(false);
         }}
         onContextMenu={(e) => {
           e.preventDefault();
