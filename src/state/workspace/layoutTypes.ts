@@ -63,5 +63,5 @@ export function clampRatio(r: number) {
 }
 
 export function workspaceHasTile(ws: Workspace, tileId: TileId): boolean {
-  return ws.tiles.some((t) => t.id === tileId);
+  return ws.tabs.some((tab) => tab.tiles.some((t) => t.id === tileId));
 }

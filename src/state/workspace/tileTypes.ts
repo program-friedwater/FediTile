@@ -1,7 +1,7 @@
 import type { TimelineKind } from "../../domain/types";
 
 export type TileId = string & { readonly __brand: "TileId" };
-
+export type TabId = string & { readonly __brand: "TabId" };
 export type TileSize = "s" | "m" | "l";
 
 export type TileQuery =
@@ -28,16 +28,21 @@ export type Tile = {
   updatedAt: string;
 };
 
-export type Workspace = {
-  version: 2;
+export type TabWorkspace = {
+  id: TabId;
+  title: string;
   layout: import("./layoutTypes").LayoutNode;
   tiles: Tile[];
+  widthPx?: number;
   updatedAt: string;
 };
 
-export function assertNever(x: never): never {
-  throw new Error(`Unexpected object: ${String(x)}`);
-}
+export type Workspace = {
+  version: 3;
+  activeTabId: TabId;
+  tabs: TabWorkspace[];
+  updatedAt: string;
+};
 
 export function tileKindLabel(kind: TimelineKind | TileQuery["kind"]): string {
   switch (kind) {
@@ -63,5 +68,3 @@ export function tileKindLabel(kind: TimelineKind | TileQuery["kind"]): string {
       return String(kind);
   }
 }
-
-// (icons removed; keep UI minimal)

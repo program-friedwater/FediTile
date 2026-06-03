@@ -235,7 +235,8 @@ export function TileTimeline(props: Props) {
             onReply={async (post) => {
               try {
                 const ws = loadWorkspace();
-                const hasCompose = !!ws?.tiles?.some((t) => t.query?.kind === "compose");
+                const activeTab = ws?.tabs.find((tab) => tab.id === ws.activeTabId) ?? ws?.tabs[0];
+                const hasCompose = !!activeTab?.tiles.some((t) => t.query?.kind === "compose");
                 if (hasCompose) {
                   const intent = postToReplyIntent(post);
                   if (intent) emitComposeIntent(intent);
