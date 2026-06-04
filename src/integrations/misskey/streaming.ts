@@ -3,10 +3,27 @@ import type { MisskeyAccount } from "../../state/accounts/accountsStore";
 import { normalizeMisskeyNote, normalizeMisskeyNotification } from "./api";
 
 type ConnectBody = { channel: string; id: string; params?: Record<string, unknown> };
+type StreamOptions = { heartbeatMs?: number };
+
+const DEFAULT_HEARTBEAT_MS = 15_000;
+const HEARTBEAT_PAYLOAD = "h";
 
 function randomId() {
   const b = crypto.getRandomValues(new Uint8Array(8));
   return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+}
+
+function startHeartbeat(ws: WebSocket, heartbeatMs: number) {
+  if (heartbeatMs <= 0) return () => {};
+  const timer = window.setInterval(() => {
+    if (ws.readyState !== WebSocket.OPEN) return;
+    try {
+      ws.send(HEARTBEAT_PAYLOAD);
+    } catch {
+      // ignore
+    }
+  }, heartbeatMs);
+  return () => window.clearInterval(timer);
 }
 
 export function startTimelineStream(
@@ -14,12 +31,14 @@ export function startTimelineStream(
   kind: "home" | "local" | "social" | "federated",
   onNote: (p: Post) => void,
   onError?: (err: string) => void,
+  options?: StreamOptions,
 ): { close: () => void } {
   const u = new URL(`${account.instanceUrl.replace(/^http/, "ws")}/streaming`);
   u.searchParams.set("i", account.accessToken);
 
   const ws = new WebSocket(u.toString());
   const subId = `sub_${randomId()}`;
+  const stopHeartbeat = startHeartbeat(ws, options?.heartbeatMs ?? DEFAULT_HEARTBEAT_MS);
 
   const channel =
     kind === "home"
@@ -53,10 +72,14 @@ export function startTimelineStream(
   };
 
   ws.onerror = () => onError?.("stream error");
-  ws.onclose = () => onError?.("stream closed");
+  ws.onclose = () => {
+    stopHeartbeat();
+    onError?.("stream closed");
+  };
 
   return {
     close: () => {
+      stopHeartbeat();
       try {
         ws.close();
       } catch {
@@ -70,12 +93,14 @@ export function startNotificationsStream(
   account: MisskeyAccount,
   onNotification: (notification: Notification) => void,
   onError?: (err: string) => void,
+  options?: StreamOptions,
 ): { close: () => void } {
   const u = new URL(`${account.instanceUrl.replace(/^http/, "ws")}/streaming`);
   u.searchParams.set("i", account.accessToken);
 
   const ws = new WebSocket(u.toString());
   const subId = `sub_${randomId()}`;
+  const stopHeartbeat = startHeartbeat(ws, options?.heartbeatMs ?? DEFAULT_HEARTBEAT_MS);
 
   ws.onopen = () => {
     const msg = { type: "connect", body: { channel: "main", id: subId, params: {} } satisfies ConnectBody };
@@ -98,10 +123,14 @@ export function startNotificationsStream(
   };
 
   ws.onerror = () => onError?.("stream error");
-  ws.onclose = () => onError?.("stream closed");
+  ws.onclose = () => {
+    stopHeartbeat();
+    onError?.("stream closed");
+  };
 
   return {
     close: () => {
+      stopHeartbeat();
       try {
         ws.close();
       } catch {
