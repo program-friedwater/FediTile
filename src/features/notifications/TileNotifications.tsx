@@ -33,7 +33,7 @@ function notificationLabel(notification: Notification): string {
   }
 }
 
-export function TileNotifications() {
+export function TileNotifications(props: { reconnectToken?: number }) {
   const [items, setItems] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [accountsEpoch, setAccountsEpoch] = useState(0);
@@ -86,7 +86,7 @@ export function TileNotifications() {
       streamRef.current?.close();
       streamRef.current = null;
     };
-  }, [accountsEpoch]);
+  }, [accountsEpoch, props.reconnectToken]);
 
   const loadMore = async () => {
     if (loading) return;

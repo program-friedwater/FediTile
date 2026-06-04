@@ -79,7 +79,6 @@ function WorkspaceScreen() {
           <div className="floatingActions">
             <button className="btn" onClick={() => setAddOpen(true)}>Add tile</button>
             <button className="btn" onClick={() => setSettingsOpen(true)}>Settings</button>
-            <button className="btn btnDanger" onClick={() => dispatch({ type: "workspace/reset", workspace: createDefaultWorkspace() })}>Reset</button>
           </div>
         </div>
         {!activeTab || activeTab.tiles.length === 0 ? (
@@ -138,7 +137,11 @@ function WorkspaceScreen() {
           dispatch({ type: "layout/split", targetId, dir: "row", newTile: tile });
         }}
       />
-      <SettingsModal isOpen={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsModal
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onResetWorkspace={() => dispatch({ type: "workspace/reset", workspace: createDefaultWorkspace() })}
+      />
       <EditTileModal
         isOpen={editOpen}
         tile={editTile}

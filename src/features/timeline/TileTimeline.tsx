@@ -20,6 +20,7 @@ import { replacePostInList } from "../../components/post/postTree";
 
 type Props = {
   query: TileQuery;
+  reconnectToken?: number;
 };
 
 const PAGE_SIZE = 40;
@@ -175,7 +176,7 @@ export function TileTimeline(props: Props) {
       streamRef.current?.close();
       streamRef.current = null;
     };
-  }, [queryKey, props.query, accountsEpoch]);
+  }, [accountsEpoch, props.query, props.reconnectToken, queryKey]);
 
   const loadMore = () => {
     if (loading) return;

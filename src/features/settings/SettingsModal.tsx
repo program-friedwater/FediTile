@@ -10,6 +10,7 @@ import { Pill } from "../../components/ui/Pill";
 type Props = {
   isOpen: boolean;
   onClose: () => void;
+  onResetWorkspace?: () => void;
 };
 
 const AUTH_RESULT_PREFIX = "feditile:misskey-auth-result:";
@@ -272,6 +273,16 @@ export function SettingsModal(props: Props) {
         <Label>Storage</Label>
         <Pill>Workspace is stored in localStorage.</Pill>
       </FieldRow>
+
+      {props.onResetWorkspace ? (
+        <FieldRow>
+          <Label>Workspace</Label>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+            <Pill>Reset the current workspace layout and tiles.</Pill>
+            <Button variant="danger" onClick={props.onResetWorkspace}>Reset workspace</Button>
+          </div>
+        </FieldRow>
+      ) : null}
 
       <FieldRow>
         <Label>Auth debug</Label>

@@ -58,7 +58,14 @@ export function TileView(props: Props) {
   const [titleDraft, setTitleDraft] = useState(props.tile.title);
   const [menuOpen, setMenuOpen] = useState(false);
   const [dragPreview, setDragPreview] = useState(false);
+  const [reconnectToken, setReconnectToken] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const supportsReconnect =
+    props.tile.query.kind === "home" ||
+    props.tile.query.kind === "local" ||
+    props.tile.query.kind === "social" ||
+    props.tile.query.kind === "federated" ||
+    props.tile.query.kind === "notifications";
 
   const kindLabel = tileKindLabel(props.tile.query.kind);
   const kindIcon = (() => {
@@ -280,6 +287,18 @@ export function TileView(props: Props) {
                   Edit tile…
                 </button>
               ) : null}
+              {supportsReconnect ? (
+                <button
+                  className="tileMenuItem"
+                  role="menuitem"
+                  onClick={() => {
+                    setReconnectToken((n) => n + 1);
+                    setMenuOpen(false);
+                  }}
+                >
+                  Reconnect
+                </button>
+              ) : null}
               {showLegacyControls ? (
                 <>
                   <div className="tileMenuSep" role="separator" />
@@ -358,11 +377,11 @@ export function TileView(props: Props) {
         ) : props.tile.query.kind === "inspect" ? (
           <TileInspect />
         ) : props.tile.query.kind === "notifications" ? (
-          <TileNotifications />
+          <TileNotifications reconnectToken={reconnectToken} />
         ) : props.tile.query.kind === "trending" ? (
           <TileTrending />
         ) : (
-          <TileTimeline query={props.tile.query} />
+          <TileTimeline query={props.tile.query} reconnectToken={reconnectToken} />
         )}
       </div>
 
