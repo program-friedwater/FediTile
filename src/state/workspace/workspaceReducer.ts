@@ -27,6 +27,7 @@ export type WorkspaceAction =
   | { type: "tile/remove"; id: TileId }
   | { type: "tile/move"; id: TileId; delta: -1 | 1 }
   | { type: "tile/swap"; id: TileId; targetId: TileId }
+  | { type: "tile/reset"; id: TileId }
   | { type: "tile/resize"; id: TileId; size: TileSize }
   | { type: "tile/setWidthPx"; id: TileId; widthPx: number }
   | { type: "tile/setHeightPx"; id: TileId; heightPx: number }
@@ -177,6 +178,45 @@ export function workspaceReducer(state: Workspace, action: WorkspaceAction): Wor
       });
       return updateActiveTab(state, { ...activeTab, tiles }, now);
     }
+    case "tile/reset":
+      return updateActiveTab(
+        state,
+        {
+          ...activeTab!,
+          tiles: activeTab!.tiles.map((x) =>
+            x.id === action.id
+              ? {
+                  ...x,
+                  title:
+                    x.query.kind === "home"
+                      ? "Home"
+                      : x.query.kind === "local"
+                        ? "Local"
+                        : x.query.kind === "social"
+                          ? "Social"
+                          : x.query.kind === "federated"
+                            ? "Federated"
+                            : x.query.kind === "trending"
+                              ? "Trending"
+                              : x.query.kind === "search"
+                                ? "Search"
+                                : x.query.kind === "notifications"
+                                  ? "Notifications"
+                                  : x.query.kind === "compose"
+                                    ? "Compose"
+                                    : "Inspect",
+                  size: "m",
+                  widthPx: undefined,
+                  heightPx: undefined,
+                  refreshMode: "polling",
+                  lastSeenAt: undefined,
+                  updatedAt: now,
+                }
+              : x,
+          ),
+        },
+        now,
+      );
     case "tile/resize":
       return updateActiveTab(state, { ...activeTab!, tiles: activeTab!.tiles.map((x) => (x.id === action.id ? { ...x, size: action.size, widthPx: undefined, updatedAt: now } : x)) }, now);
     case "tile/setWidthPx":

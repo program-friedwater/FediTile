@@ -12,6 +12,7 @@ type Props = {
   onSplit: (targetId: TileId, dir: "row" | "col") => void;
   onSetSplitRatio: (path: Array<"a" | "b">, ratio: number) => void;
   onRemove: (id: TileId) => void;
+  onReset: (id: TileId) => void;
   onRename: (id: TileId, title: string) => void;
   onEdit: (id: TileId) => void;
 };
@@ -39,6 +40,7 @@ export function TiledLayout(props: Props) {
             onSetWidthPx={() => {}}
             onSetHeightPx={() => {}}
             onRemove={() => props.onRemove(tile.id)}
+            onReset={() => props.onReset(tile.id)}
             onRename={(title) => props.onRename(tile.id, title)}
             maxWidthPx={Number.MAX_SAFE_INTEGER}
             maxHeightPx={Number.MAX_SAFE_INTEGER}

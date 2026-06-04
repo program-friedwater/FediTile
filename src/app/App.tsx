@@ -111,6 +111,7 @@ function WorkspaceScreen() {
                 onSplit={(targetId, dir) => dispatch({ type: "layout/split", targetId, dir, newTile: { title: "Split", query: { kind: "local" }, size: "m" } })}
                 onSetSplitRatio={(path, ratio) => dispatch({ type: "layout/setRatio", path, ratio })}
                 onRemove={(id) => dispatch({ type: "tile/remove", id })}
+                onReset={(id) => dispatch({ type: "tile/reset", id })}
                 onRename={(id, title) => dispatch({ type: "tile/rename", id, title })}
                 onEdit={(id) => {
                   setEditTile(tab.tiles.find((x) => x.id === id) ?? null);

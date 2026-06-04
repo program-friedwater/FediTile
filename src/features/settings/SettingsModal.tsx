@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadAccounts, onAccountsChanged, removeMisskeyAccount, setDefaultMisskeyAccount, upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
-import { clearAuthTrace, readAuthTrace } from "../../integrations/misskey/authTrace";
 import { startMiAuth } from "../../integrations/misskey/miauth";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
@@ -24,8 +23,6 @@ export function SettingsModal(props: Props) {
   const [misskeyAccounts, setMisskeyAccounts] = useState<MisskeyAccount[]>([]);
   const [defaultAccountId, setDefaultAccountId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-  const [debugLines, setDebugLines] = useState<string[]>([]);
-  const [traceLines, setTraceLines] = useState<string[]>([]);
   const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -67,14 +64,11 @@ export function SettingsModal(props: Props) {
   useEffect(() => {
     if (!props.isOpen) return;
     setError(null);
-    setDebugLines([]);
     const refresh = () =>
       loadAccounts()
         .then((a) => {
           setMisskeyAccounts(a.misskey);
           setDefaultAccountId(a.defaultAccountId ?? "");
-          setDebugLines((prev) => [`loadAccounts -> ${a.misskey.length} account(s)`, ...prev].slice(0, 12));
-          setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
         })
         .catch((e) => setError(`Failed to load accounts: ${String(e)}`));
     refresh();
@@ -85,13 +79,10 @@ export function SettingsModal(props: Props) {
     const onMessage = async (event: MessageEvent) => {
       if (event.origin !== window.location.origin) return;
       if (event.data?.type !== "feditile:misskey-auth-complete" || !event.data.account) return;
-      setDebugLines((prev) => [`message -> ${event.data.account.id}`, ...prev].slice(0, 12));
       await upsertMisskeyAccount(event.data.account as MisskeyAccount);
       const next = await loadAccounts();
       setMisskeyAccounts(next.misskey);
       setDefaultAccountId(next.defaultAccountId ?? "");
-      setDebugLines((prev) => [`post-upsert -> ${next.misskey.length} account(s)`, ...prev].slice(0, 12));
-      setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
     };
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
@@ -110,14 +101,13 @@ export function SettingsModal(props: Props) {
           const parsed = JSON.parse(raw) as { ok?: boolean; error?: string; account?: MisskeyAccount };
           const account = parsed.account;
           if (account) {
-            setDebugLines((prev) => [`storage-result -> ${account.id}`, ...prev].slice(0, 12));
             await upsertMisskeyAccount(account);
             setError(null);
           } else if (parsed.error) {
-            setDebugLines((prev) => [`storage-error -> ${parsed.error}`, ...prev].slice(0, 12));
+            setError(parsed.error);
           }
         } catch (e) {
-          setDebugLines((prev) => [`storage-parse-error -> ${String(e)}`, ...prev].slice(0, 12));
+          setError(String(e));
         } finally {
           localStorage.removeItem(key);
         }
@@ -125,21 +115,12 @@ export function SettingsModal(props: Props) {
       const next = await loadAccounts();
       setMisskeyAccounts(next.misskey);
       setDefaultAccountId(next.defaultAccountId ?? "");
-      setDebugLines((prev) => [`storage-consume -> ${next.misskey.length} account(s)`, ...prev].slice(0, 12));
-      setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
     };
 
     consumeAuthResults();
     const timer = window.setInterval(consumeAuthResults, 800);
     return () => window.clearInterval(timer);
   }, [props.isOpen]);
-
-  const storageKeys = useMemo(() => {
-    if (!props.isOpen) return [];
-    return Object.keys(localStorage)
-      .filter((key) => key.startsWith("accounts.") || key.startsWith("feditile-accounts") || key.startsWith(AUTH_RESULT_PREFIX))
-      .sort();
-  }, [props.isOpen, misskeyAccounts.length, debugLines.length]);
 
   if (!props.isOpen) return null;
 
@@ -185,8 +166,6 @@ export function SettingsModal(props: Props) {
                 });
                 if (isDesktopRuntime() && window.feditileDesktop?.openAuthWindow) void window.feditileDesktop.openAuthWindow(authorizeUrl);
                 else window.open(authorizeUrl, `feditile-misskey-auth-${Date.now()}`, "popup,width=520,height=780");
-                setDebugLines((prev) => [`start -> ${instanceUrl}`, ...prev].slice(0, 12));
-                setTraceLines(readAuthTrace().map((entry) => `${entry.step}${entry.detail ? ` -> ${entry.detail}` : ""}`));
               } catch (e) {
                 setError(String(e));
               }
@@ -283,34 +262,6 @@ export function SettingsModal(props: Props) {
           </div>
         </FieldRow>
       ) : null}
-
-      <FieldRow>
-        <Label>Auth debug</Label>
-        <div className="list">
-          <div className="listItem">
-            <div className="listMeta">Keys: {storageKeys.length > 0 ? storageKeys.join(", ") : "(none)"}</div>
-            <div className="listMeta" style={{ marginTop: 6 }}>
-              Events:
-              {debugLines.length > 0 ? ` ${debugLines.join(" | ")}` : " (none)"}
-            </div>
-            <div className="listMeta" style={{ marginTop: 6 }}>
-              Trace:
-              {traceLines.length > 0 ? ` ${traceLines.join(" | ")}` : " (none)"}
-            </div>
-            <div style={{ marginTop: 8 }}>
-              <Button
-                onClick={() => {
-                  clearAuthTrace();
-                  setTraceLines([]);
-                  setDebugLines([]);
-                }}
-              >
-                Clear auth debug
-              </Button>
-            </div>
-          </div>
-        </div>
-      </FieldRow>
     </Modal>
   );
 }

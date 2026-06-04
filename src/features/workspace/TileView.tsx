@@ -23,6 +23,7 @@ type Props = {
   onSetWidthPx: (widthPx: number) => void;
   onSetHeightPx: (heightPx: number) => void;
   onRemove: () => void;
+  onReset: () => void;
   onRename: (title: string) => void;
   onEdit?: () => void;
   maxWidthPx: number;
@@ -281,6 +282,16 @@ export function TileView(props: Props) {
                   Edit tile…
                 </button>
               ) : null}
+              <button
+                className="tileMenuItem"
+                role="menuitem"
+                onClick={() => {
+                  props.onReset();
+                  setMenuOpen(false);
+                }}
+              >
+                Reset tile
+              </button>
               {showLegacyControls ? (
                 <>
                   <div className="tileMenuSep" role="separator" />
