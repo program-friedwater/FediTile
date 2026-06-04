@@ -18,6 +18,7 @@ function WorkspaceScreen() {
   const [activeTileIds, setActiveTileIds] = useState<Record<string, TileId | null>>({});
   const [editOpen, setEditOpen] = useState(false);
   const [editTile, setEditTile] = useState<Tile | null>(null);
+  const [reconnectToken, setReconnectToken] = useState(0);
   const gridRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const gridSize = useElementSize<HTMLDivElement>();
 
@@ -78,6 +79,7 @@ function WorkspaceScreen() {
           </div>
           <div className="floatingActions">
             <button className="btn" onClick={() => setAddOpen(true)}>Add tile</button>
+            <button className="btn" onClick={() => setReconnectToken((n) => n + 1)}>Reconnect</button>
             <button className="btn" onClick={() => setSettingsOpen(true)}>Settings</button>
           </div>
         </div>
@@ -103,6 +105,7 @@ function WorkspaceScreen() {
                 layout={tab.layout}
                 tilesById={new Map(tab.tiles.map((t) => [t.id, t]))}
                 activeTileId={activeTileIds[tab.id] ?? tab.tiles[0]?.id ?? null}
+                reconnectToken={reconnectToken}
                 onActivate={(id) => setActiveTileIds((prev) => ({ ...prev, [tab.id]: id }))}
                 onSwap={(id, targetId) => dispatch({ type: "tile/swap", id, targetId })}
                 onSplit={(targetId, dir) => dispatch({ type: "layout/split", targetId, dir, newTile: { title: "Split", query: { kind: "local" }, size: "m" } })}

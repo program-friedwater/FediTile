@@ -6,6 +6,7 @@ type Props = {
   layout: LayoutNode;
   tilesById: Map<TileId, Tile>;
   activeTileId: TileId | null;
+  reconnectToken?: number;
   onActivate: (id: TileId) => void;
   onSwap: (id: TileId, targetId: TileId) => void;
   onSplit: (targetId: TileId, dir: "row" | "col") => void;
@@ -29,6 +30,7 @@ export function TiledLayout(props: Props) {
           <TileView
             tile={tile}
             active={tile.id === props.activeTileId}
+            reconnectToken={props.reconnectToken}
             onActivate={() => props.onActivate(tile.id)}
             onSwap={(id, targetId) => props.onSwap(id, targetId)}
             onMoveLeft={() => {}}
