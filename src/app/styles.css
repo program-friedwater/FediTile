@@ -16,6 +16,8 @@
   --danger: #f85149;
   --shadow: none;
   --radius: 0.75rem;
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
   --tile-gap: 12px;
   --ring: none;
   --background-hsl: 222 47% 6%;
@@ -716,7 +718,7 @@ a:hover {
   cursor: pointer;
   display: grid;
   place-items: center;
-  border-radius: 12px;
+  border-radius: var(--radius);
 }
 
 .emojiBtn:hover {
@@ -744,7 +746,7 @@ a:hover {
   gap: 4px;
   padding: 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: var(--panel);
   box-shadow: 0 12px 32px rgb(0 0 0 / 0.32);
   max-height: min(240px, 40vh);
@@ -758,7 +760,7 @@ a:hover {
   width: 100%;
   padding: 8px 10px;
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: var(--text);
   text-align: left;
@@ -1208,7 +1210,7 @@ a:hover {
 .input,
 .select {
   width: 100%;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text);
@@ -1218,7 +1220,7 @@ a:hover {
 }
 
 textarea.input {
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .input:focus,
@@ -1545,7 +1547,7 @@ textarea.input {
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .postCardEmbedded {
@@ -1559,7 +1561,7 @@ textarea.input {
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .replyHeader {
@@ -1619,7 +1621,7 @@ textarea.input {
   width: 100%;
   overflow: hidden;
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: color-mix(in oklab, var(--panel) 72%, transparent);
   padding: 10px 12px;
   color: var(--text);
@@ -1683,7 +1685,7 @@ textarea.input {
   border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 @media (max-width: 420px) {
