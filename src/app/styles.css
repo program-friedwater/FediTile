@@ -678,9 +678,15 @@ a:hover {
 }
 
 .mfmEmoji {
+  display: inline-block;
+  width: 1.35em;
   height: 1.35em;
+  min-width: 1.35em;
   vertical-align: -0.15em;
   object-fit: contain;
+  line-height: 1;
+  white-space: nowrap;
+  flex: none;
   transform-origin: center;
   transition: transform 90ms ease;
 }
