@@ -1,7 +1,10 @@
 import {
   Bell,
+  EyeOff,
   Globe,
   House,
+  Lock,
+  Mail,
   type LucideIcon,
   MessageCircleReply,
   PenSquare,
@@ -30,3 +33,7 @@ export const TrendingIcon = icon(TrendingUp);
 export const ReplyIcon = icon(MessageCircleReply);
 export const RepeatIcon = icon(Repeat2);
 export const SmileIcon = icon(Smile);
+export const PublicVisibilityIcon = icon(Globe);
+export const UnlistedVisibilityIcon = icon(EyeOff);
+export const FollowersVisibilityIcon = icon(Lock);
+export const DirectVisibilityIcon = icon(Mail);

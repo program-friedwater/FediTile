@@ -1,7 +1,7 @@
-import type { Post } from "../../domain/types";
+import type { Post, Visibility } from "../../domain/types";
 import { renderMfm } from "../../mfm/renderMfm";
 import { buildEmojiResolver, type MisskeyEmoji } from "../../integrations/misskey/emojis";
-import { RepeatIcon, ReplyIcon, SmileIcon } from "../icons/icons";
+import { DirectVisibilityIcon, FollowersVisibilityIcon, PublicVisibilityIcon, RepeatIcon, ReplyIcon, SmileIcon, UnlistedVisibilityIcon } from "../icons/icons";
 import { PostPoll } from "./PostPoll";
 
 export type LightboxItem = { url: string; alt?: string };
@@ -22,6 +22,21 @@ function renderNameWithEmojis(name: string, emojiResolver: (shortcode: string) =
   }
   if (last < name.length) parts.push(name.slice(last));
   return parts;
+}
+
+function visibilityIcon(visibility: Visibility | undefined) {
+  switch (visibility) {
+    case "public":
+      return <PublicVisibilityIcon />;
+    case "unlisted":
+      return <UnlistedVisibilityIcon />;
+    case "followers":
+      return <FollowersVisibilityIcon />;
+    case "direct":
+      return <DirectVisibilityIcon />;
+    default:
+      return null;
+  }
 }
 
 export function PostCard(props: {
@@ -172,6 +187,10 @@ export function PostCard(props: {
           >
             <span className="listTitle">{renderNameWithEmojis(p.author.displayName ?? p.author.handle, resolver)}</span>
             <span className="listHandleMuted">{p.author.handle}</span>
+          </div>
+          <div className="postMetaRow">
+            {p.visibility ? <span className="postVisibilityIcon" title={p.visibility}>{visibilityIcon(p.visibility)}</span> : null}
+            <span className="postMetaTime">{new Date(p.createdAt).toLocaleTimeString()}</span>
           </div>
 
           {hasCw ? (

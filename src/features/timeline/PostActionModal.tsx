@@ -6,7 +6,7 @@ import { createNote } from "../../integrations/misskey/api";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import { EmojiTextarea } from "../../components/ui/EmojiTextarea";
-import { FieldRow, Label } from "../../components/ui/Field";
+import { FieldRow, Label, Select } from "../../components/ui/Field";
 import { Pill } from "../../components/ui/Pill";
 
 type Props = {
@@ -20,6 +20,7 @@ export function PostActionModal(props: Props) {
   const [status, setStatus] = useState<string | null>(null);
   const [posting, setPosting] = useState(false);
   const [emojis, setEmojis] = useState<MisskeyEmoji[]>([]);
+  const [visibility, setVisibility] = useState<"public" | "unlisted" | "followers" | "direct">("public");
 
   const title = useMemo(() => {
     if (!props.mode) return "";
@@ -30,6 +31,7 @@ export function PostActionModal(props: Props) {
     if (!props.mode) return;
     setText("");
     setStatus(null);
+    setVisibility("public");
   }, [props.mode, props.post?.uri]);
 
   useEffect(() => {
@@ -64,11 +66,19 @@ export function PostActionModal(props: Props) {
       const account = getDefaultMisskeyAccount(accounts);
       if (!account) throw new Error("No Misskey account connected.");
       if (!noteId) throw new Error("Missing note id.");
+      const vis =
+        visibility === "public"
+          ? "public"
+          : visibility === "unlisted"
+            ? "home"
+            : visibility === "followers"
+              ? "followers"
+              : "specified";
 
       if (props.mode === "quote") {
-        await createNote(account, { text, renoteId: noteId, visibility: "public" });
+        await createNote(account, { text, renoteId: noteId, visibility: vis });
       } else {
-        await createNote(account, { text, replyId: noteId, visibility: "public" });
+        await createNote(account, { text, replyId: noteId, visibility: vis });
       }
       setStatus("Posted.");
       props.onClose();
@@ -110,6 +120,15 @@ export function PostActionModal(props: Props) {
           }}
           placeholder={props.mode === "reply" ? "Write a reply…" : "Add a comment…"}
         />
+      </FieldRow>
+      <FieldRow>
+        <Label>Visibility</Label>
+        <Select value={visibility} onChange={(e) => setVisibility(e.target.value as typeof visibility)}>
+          <option value="public">Public</option>
+          <option value="unlisted">Unlisted</option>
+          <option value="followers">Followers</option>
+          <option value="direct">Direct</option>
+        </Select>
       </FieldRow>
       {status ? <Pill tone={status === "Posted." ? "default" : "danger"}>{status}</Pill> : null}
     </Modal>

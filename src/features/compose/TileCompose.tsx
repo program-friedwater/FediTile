@@ -111,6 +111,7 @@ export function TileCompose(props: { onPosted?: () => void }) {
       });
       setDraft((d) => ({
         ...d,
+        cw: "",
         text: "",
         replyId: undefined,
         pollEnabled: false,

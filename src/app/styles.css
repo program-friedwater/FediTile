@@ -1254,6 +1254,30 @@ textarea.input {
   text-overflow: ellipsis;
 }
 
+.postMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
+  color: var(--muted);
+}
+
+.postVisibilityIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.postVisibilityIcon .tileTypeIcon {
+  width: 14px;
+  height: 14px;
+}
+
+.postMetaTime {
+  font-size: 12px;
+  line-height: 1.2;
+}
+
 .listMeta {
   margin-top: 4px;
   font-size: 15px;

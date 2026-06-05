@@ -88,6 +88,21 @@ function normalizeMisskeyAuthor(account: MisskeyAccount, user: any): Author {
   };
 }
 
+function normalizeMisskeyVisibility(value: string | undefined) {
+  switch (value) {
+    case "public":
+      return "public" as const;
+    case "home":
+      return "unlisted" as const;
+    case "followers":
+      return "followers" as const;
+    case "specified":
+      return "direct" as const;
+    default:
+      return "unknown" as const;
+  }
+}
+
 export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote): Post {
   const createdAt = (note?.createdAt as string | undefined) ?? new Date().toISOString();
   const author = note?.user ?? {};
@@ -135,6 +150,7 @@ export function normalizeMisskeyNote(account: MisskeyAccount, note: MisskeyNote)
     contentFormat: "mfm",
     content: text || (renotePost ? "" : ""),
     cw,
+    visibility: normalizeMisskeyVisibility(note?.visibility as string | undefined),
     media:
       files.length > 0
         ? files.map((f: any) => ({
