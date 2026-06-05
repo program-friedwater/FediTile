@@ -9,6 +9,7 @@ import { AddTileModal } from "../features/workspace/AddTileModal";
 import { EditTileModal } from "../features/workspace/EditTileModal";
 import { WorkspaceTabs } from "../features/workspace/WorkspaceTabs";
 import { SettingsModal } from "../features/settings/SettingsModal";
+import { Button } from "../components/ui/Button";
 
 function WorkspaceScreen() {
   const { workspace, dispatch } = useWorkspace();
@@ -78,9 +79,9 @@ function WorkspaceScreen() {
             <span className="floatingSub">{subtitle}</span>
           </div>
           <div className="floatingActions">
-            <button className="btn" onClick={() => setAddOpen(true)}>Add tile</button>
-            <button className="btn" onClick={() => setReconnectToken((n) => n + 1)}>Reconnect</button>
-            <button className="btn" onClick={() => setSettingsOpen(true)}>Settings</button>
+            <Button onClick={() => setAddOpen(true)}>Add tile</Button>
+            <Button onClick={() => setReconnectToken((n) => n + 1)}>Reconnect</Button>
+            <Button onClick={() => setSettingsOpen(true)}>Settings</Button>
           </div>
         </div>
         {!activeTab || activeTab.tiles.length === 0 ? (

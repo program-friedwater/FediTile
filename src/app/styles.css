@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
   color-scheme: light dark;
   /* GitHub-dark-ish */
@@ -11,9 +15,28 @@
   --accent2: #2f81f7;
   --danger: #f85149;
   --shadow: none;
-  --radius: 0px;
+  --radius: 0.75rem;
   --tile-gap: 12px;
   --ring: none;
+  --background-hsl: 222 47% 6%;
+  --foreground-hsl: 210 40% 96%;
+  --card-hsl: 222 47% 7%;
+  --card-foreground-hsl: 210 40% 96%;
+  --popover-hsl: 222 47% 7%;
+  --popover-foreground-hsl: 210 40% 96%;
+  --primary-hsl: 213 93% 58%;
+  --primary-foreground-hsl: 210 40% 98%;
+  --secondary-hsl: 217 33% 16%;
+  --secondary-foreground-hsl: 210 40% 96%;
+  --muted-hsl: 215 15% 20%;
+  --muted-foreground-hsl: 215 14% 65%;
+  --accent-hsl: 217 33% 16%;
+  --accent-foreground-hsl: 210 40% 96%;
+  --destructive-hsl: 0 91% 65%;
+  --destructive-foreground-hsl: 210 40% 98%;
+  --border-hsl: 216 18% 22%;
+  --input-hsl: 216 18% 22%;
+  --ring-hsl: 213 93% 68%;
 }
 
 @media (prefers-color-scheme: light) {
@@ -30,6 +53,35 @@
     --danger: #cf222e;
     --shadow: none;
     --ring: none;
+    --background-hsl: 0 0% 100%;
+    --foreground-hsl: 222 22% 14%;
+    --card-hsl: 210 29% 98%;
+    --card-foreground-hsl: 222 22% 14%;
+    --popover-hsl: 0 0% 100%;
+    --popover-foreground-hsl: 222 22% 14%;
+    --primary-hsl: 212 92% 45%;
+    --primary-foreground-hsl: 210 40% 98%;
+    --secondary-hsl: 210 17% 95%;
+    --secondary-foreground-hsl: 222 22% 14%;
+    --muted-hsl: 210 17% 95%;
+    --muted-foreground-hsl: 215 14% 42%;
+    --accent-hsl: 210 17% 95%;
+    --accent-foreground-hsl: 222 22% 14%;
+    --destructive-hsl: 356 72% 47%;
+    --destructive-foreground-hsl: 210 40% 98%;
+    --border-hsl: 214 16% 85%;
+    --input-hsl: 214 16% 85%;
+    --ring-hsl: 212 92% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
   }
 }
 
