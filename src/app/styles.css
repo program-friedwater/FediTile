@@ -1679,6 +1679,8 @@ textarea.input {
   border: none;
   background: transparent;
   padding: 0;
+  display: grid;
+  gap: 10px;
 }
 
 .inspectReply {
@@ -1686,6 +1688,53 @@ textarea.input {
   background: color-mix(in oklab, var(--panel) 65%, transparent);
   padding: 8px;
   border-radius: var(--radius-md);
+}
+
+.inspectAuthorHeader {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.inspectPills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.inspectSectionTitle {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.inspectRoleList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.inspectRoleBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid color-mix(in oklab, var(--border) 85%, transparent);
+  background: color-mix(in oklab, var(--panel) 72%, transparent);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inspectRoleIcon {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  object-fit: cover;
+  flex: none;
 }
 
 @media (max-width: 420px) {

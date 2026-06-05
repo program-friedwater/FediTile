@@ -1,21 +1,20 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { Author, Post } from "../../domain/types";
-import { onInspectIntent, type InspectIntent } from "../../state/events/inspectBus";
+import { emitInspectIntent, onInspectIntent } from "../../state/events/inspectBus";
 import { Pill } from "../../components/ui/Pill";
-import { renderMfm } from "../../mfm/renderMfm";
-import { buildEmojiResolver, getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
+import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { getDefaultMisskeyAccount, loadAccounts } from "../../state/accounts/accountsStore";
-import { createNote, fetchReplies, reactToNote, showNote, showUser, unreactToNote, voteOnPoll } from "../../integrations/misskey/api";
+import { createNote, fetchReplies, fetchUserNotes, reactToNote, showNote, showUser, unreactToNote, voteOnPoll, type MisskeyUserProfile } from "../../integrations/misskey/api";
 import { EmojiPickerModal } from "../timeline/EmojiPickerModal";
 import { PostActionModal } from "../timeline/PostActionModal";
-import { RepeatIcon, ReplyIcon, SmileIcon } from "../../components/icons/icons";
 import { PostCard } from "../../components/post/PostCard";
 import { replacePostInTree } from "../../components/post/postTree";
+import { AuthorInspectCard } from "./AuthorInspectCard";
 
 type ViewState =
   | { kind: "empty" }
   | { kind: "post"; post: Post; replies: Post[]; loadedAt: string }
-  | { kind: "author"; author: Author; loadedAt: string; noteCount?: number };
+  | { kind: "author"; author: Author; loadedAt: string; profile?: MisskeyUserProfile; notes?: Post[] };
 
 function nowIso() {
   return new Date().toISOString();
@@ -75,8 +74,11 @@ export function TileInspect() {
           if (!account) return;
           const remoteId = (intent.author.remoteId as any as string | undefined) ?? "";
           if (!remoteId) return;
-          const info = await showUser(account, { userId: remoteId });
-          setState({ kind: "author", author: info.author, loadedAt: nowIso(), noteCount: info.noteCount });
+          const [profile, notes] = await Promise.all([
+            showUser(account, { userId: remoteId }),
+            fetchUserNotes(account, { userId: remoteId, limit: 20 }).catch(() => [] as Post[]),
+          ]);
+          setState({ kind: "author", author: profile.author, loadedAt: nowIso(), profile, notes });
         } catch {
           // ignore
         }
@@ -85,11 +87,6 @@ export function TileInspect() {
   }, []);
 
   const title = state.kind === "empty" ? "Click a post or user" : state.kind === "post" ? "Post" : "User";
-
-  const resolver = useMemo(() => {
-    const emojis = state.kind === "post" ? state.post.customEmojis : undefined;
-    return buildEmojiResolver({ emojis, global: globalEmojis });
-  }, [state, globalEmojis]);
 
   return (
     <div style={{ padding: 10, display: "grid", gap: 10 }}>
@@ -101,25 +98,14 @@ export function TileInspect() {
       {state.kind === "empty" ? <div className="emptyState">Click a post or user to inspect.</div> : null}
 
       {state.kind === "author" ? (
-        <div className="inspectCard">
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            {state.author.avatarUrl ? <img className="avatar" src={state.author.avatarUrl} alt="" decoding="async" /> : <div className="avatar avatarFallback" />}
-            <div style={{ minWidth: 0 }}>
-              <div className="listTitleRow">
-                <span className="listTitle">{state.author.displayName ?? state.author.handle}</span>
-                <span className="listHandleMuted">{state.author.handle}</span>
-              </div>
-              {typeof state.noteCount === "number" ? <div className="listMeta">Notes: {state.noteCount}</div> : null}
-              {state.author.url ? (
-                <div className="listMeta">
-                  <a href={state.author.url} target="_blank" rel="noreferrer noopener">
-                    Open profile
-                  </a>
-                </div>
-              ) : null}
-            </div>
-          </div>
-        </div>
+        <AuthorInspectCard
+          author={state.author}
+          profile={state.profile}
+          notes={state.notes}
+          globalEmojis={globalEmojis}
+          onInspectPost={(post) => emitInspectIntent({ type: "post", post })}
+          onInspectAuthor={(author) => emitInspectIntent({ type: "author", author })}
+        />
       ) : null}
 
       {state.kind === "post" ? (

@@ -4,6 +4,16 @@ import { misskeyHttpFetch } from "./http";
 
 export type MisskeyNote = any;
 export type MisskeyTrendTag = { tag: string; usersCount?: number; chart?: number[] };
+export type MisskeyRoleBadge = { name: string; iconUrl?: string; displayOrder?: number; behavior?: string };
+export type MisskeyUserProfile = {
+  author: Post["author"];
+  noteCount?: number;
+  description?: string;
+  onlineStatus?: string;
+  badgeRoles?: MisskeyRoleBadge[];
+  customEmojis?: Record<string, string>;
+  isLocal?: boolean;
+};
 
 function normalizeEmojiMap(input: unknown): Record<string, string> | undefined {
   if (!input) return undefined;
@@ -343,14 +353,37 @@ export async function fetchReplies(account: MisskeyAccount, args: { noteId: stri
   return notes.map((n) => normalizeMisskeyNote(account, n));
 }
 
+export async function fetchUserNotes(account: MisskeyAccount, args: { userId: string; limit?: number }): Promise<Post[]> {
+  const limit = typeof args.limit === "number" ? args.limit : 20;
+  const notes = await postJson<MisskeyNote[]>(account, "users/notes", {
+    userId: args.userId,
+    limit,
+    includeReplies: true,
+    includeMyRenotes: false,
+    withFiles: false,
+  });
+  return notes.map((n) => normalizeMisskeyNote(account, n));
+}
+
 export async function showUser(
   account: MisskeyAccount,
   args: { userId: string },
-): Promise<{ author: Post["author"]; noteCount?: number }> {
+): Promise<MisskeyUserProfile> {
   const user = await postJson<any>(account, "users/show", { userId: args.userId });
   const instanceHost = hostFromInstanceUrl(account.instanceUrl);
   const username = (user?.username as string | undefined) ?? "unknown";
   const host = (user?.host as string | null | undefined) ?? instanceHost;
+  const badgeRoles = Array.isArray(user?.badgeRoles)
+    ? user.badgeRoles
+        .map((role: any) => ({
+          name: typeof role?.name === "string" ? role.name : "",
+          iconUrl: typeof role?.iconUrl === "string" ? role.iconUrl : undefined,
+          displayOrder: typeof role?.displayOrder === "number" ? role.displayOrder : undefined,
+          behavior: typeof role?.behavior === "string" ? role.behavior : undefined,
+        }))
+        .filter((role: MisskeyRoleBadge) => role.name)
+        .sort((left: MisskeyRoleBadge, right: MisskeyRoleBadge) => (left.displayOrder ?? 0) - (right.displayOrder ?? 0))
+    : undefined;
   return {
     author: {
       remoteId: (user?.id as any) ?? undefined,
@@ -360,5 +393,10 @@ export async function showUser(
       url: user?.host ? `${account.instanceUrl}/@${username}@${user.host}` : `${account.instanceUrl}/@${username}`,
     },
     noteCount: typeof user?.notesCount === "number" ? user.notesCount : undefined,
+    description: typeof user?.description === "string" ? user.description : undefined,
+    onlineStatus: typeof user?.onlineStatus === "string" ? user.onlineStatus : undefined,
+    badgeRoles,
+    customEmojis: normalizeEmojiMap(user?.emojis),
+    isLocal: user?.host == null || user?.host === "" || user?.host === instanceHost,
   };
 }
