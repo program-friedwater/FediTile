@@ -151,7 +151,7 @@ fn start_auth_server(app: AppHandle, state: SharedAuthState) -> std::io::Result<
   let port = listener.local_addr()?.port();
   {
     let mut state = state.lock().expect("auth state poisoned");
-    state.callback_base_url = Some(format!("http://localhost:{port}{AUTH_CALLBACK_PATH}"));
+    state.callback_base_url = Some(format!("http://127.0.0.1:{port}{AUTH_CALLBACK_PATH}"));
   }
 
   thread::spawn(move || loop {
