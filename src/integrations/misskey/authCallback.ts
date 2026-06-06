@@ -10,7 +10,10 @@ function parseHash(hash: string): { path: string; params: URLSearchParams } {
   return { path: path || "", params: new URLSearchParams(qs ?? "") };
 }
 
-async function processCallbackUrl(urlString: string): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
+async function processCallbackUrl(
+  urlString: string,
+  opts?: { finalizeBrowserCallback?: boolean },
+): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
   const url = new URL(urlString);
   const hash = parseHash(url.hash);
   const path = url.pathname === "/auth/misskey" ? "/auth/misskey" : hash.path;
@@ -38,12 +41,17 @@ async function processCallbackUrl(urlString: string): Promise<{ handled: boolean
     } catch {
       // ignore
     }
-    if (url.pathname === "/auth/misskey" && (url.protocol === "http:" || url.protocol === "https:")) window.location.replace(new URL("/", window.location.origin).toString());
-    else window.location.hash = "";
-    try {
-      window.close();
-    } catch {
-      // ignore
+    if (opts?.finalizeBrowserCallback) {
+      if (url.pathname === "/auth/misskey" && (url.protocol === "http:" || url.protocol === "https:")) {
+        window.location.replace(new URL("/", window.location.origin).toString());
+      } else {
+        window.location.hash = "";
+      }
+      try {
+        window.close();
+      } catch {
+        // ignore
+      }
     }
     pushAuthTrace("callback:done", account.id);
     return { handled: true, ok: true };
@@ -59,9 +67,9 @@ async function processCallbackUrl(urlString: string): Promise<{ handled: boolean
 }
 
 export async function processMisskeyAuthCallbackUrl(urlString: string) {
-  return processCallbackUrl(urlString);
+  return processCallbackUrl(urlString, { finalizeBrowserCallback: false });
 }
 
 export async function handleMisskeyAuthCallback(): Promise<{ handled: boolean; ok?: boolean; error?: string }> {
-  return processCallbackUrl(window.location.href);
+  return processCallbackUrl(window.location.href, { finalizeBrowserCallback: true });
 }
