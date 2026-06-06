@@ -57,9 +57,6 @@ export function SettingsModal(props: Props) {
 
   const callbackUrl = useMemo(() => {
     const current = new URL(window.location.href);
-    if (isDesktopRuntime() && (current.protocol === "http:" || current.protocol === "https:")) {
-      return new URL("/auth/misskey", current.origin).toString();
-    }
     if (isDesktopRuntime()) return desktopCallbackBaseUrl ?? "";
     if (current.protocol === "http:" || current.protocol === "https:") {
       return new URL("/auth/misskey", current.origin).toString();
