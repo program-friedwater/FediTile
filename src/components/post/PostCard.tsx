@@ -1,6 +1,6 @@
 import type { Post, Visibility } from "../../domain/types";
 import { renderMfm } from "../../mfm/renderMfm";
-import { buildEmojiResolver, type MisskeyEmoji } from "../../integrations/misskey/emojis";
+import { buildEmojiResolver, normalizeEmojiKey, type MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { DirectVisibilityIcon, FollowersVisibilityIcon, PublicVisibilityIcon, RepeatIcon, ReplyIcon, SmileIcon, UnlistedVisibilityIcon } from "../icons/icons";
 import { PostPoll } from "./PostPoll";
 
@@ -37,6 +37,13 @@ function visibilityIcon(visibility: Visibility | undefined) {
     default:
       return null;
   }
+}
+
+function renderReactionLabel(key: string, emojiResolver: (shortcode: string) => string | null | undefined) {
+  const normalized = normalizeEmojiKey(key);
+  const url = normalized ? emojiResolver(normalized) : null;
+  if (url) return <img src={url} alt={key} loading="lazy" decoding="async" />;
+  return key;
 }
 
 export function PostCard(props: {
@@ -270,15 +277,7 @@ export function PostCard(props: {
                       title="Toggle reaction"
                       onClick={() => props.onToggleReaction?.(p, r.key)}
                     >
-                      {(() => {
-                        const key = r.key;
-                        if (key.startsWith(":") && key.endsWith(":")) {
-                          const name = key.slice(1, -1);
-                          const url = resolver(name);
-                          return <>{url ? <img src={url} alt={key} loading="lazy" decoding="async" /> : key}</>;
-                        }
-                        return <>{key}</>;
-                      })()}{" "}
+                      {renderReactionLabel(r.key, resolver)}{" "}
                       {r.count}
                     </button>
                   ))}

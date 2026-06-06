@@ -42,9 +42,34 @@ export async function getEmojis(account: MisskeyAccount): Promise<MisskeyEmoji[]
   return emojis;
 }
 
+export function normalizeEmojiKey(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  const unwrapped = trimmed.startsWith(":") && trimmed.endsWith(":") ? trimmed.slice(1, -1) : trimmed;
+  return unwrapped;
+}
+
 export function buildEmojiResolver(args: { emojis?: Record<string, string>; global?: MisskeyEmoji[] }) {
   const local = args.emojis ?? {};
   const globalMap = new Map<string, string>();
-  for (const e of args.global ?? []) globalMap.set(e.name, e.url);
-  return (name: string): string | undefined => local[name] ?? globalMap.get(name);
+  for (const e of args.global ?? []) {
+    const normalized = normalizeEmojiKey(e.name);
+    if (!normalized) continue;
+    globalMap.set(normalized, e.url);
+    if (normalized.includes("@")) globalMap.set(normalized.split("@")[0] ?? normalized, e.url);
+  }
+
+  const localMap = new Map<string, string>();
+  for (const [key, url] of Object.entries(local)) {
+    const normalized = normalizeEmojiKey(key);
+    if (!normalized) continue;
+    localMap.set(normalized, url);
+    if (normalized.includes("@")) localMap.set(normalized.split("@")[0] ?? normalized, url);
+  }
+
+  return (name: string): string | undefined => {
+    const normalized = normalizeEmojiKey(name);
+    if (!normalized) return undefined;
+    return localMap.get(normalized) ?? globalMap.get(normalized) ?? localMap.get(normalized.split("@")[0] ?? normalized) ?? globalMap.get(normalized.split("@")[0] ?? normalized);
+  };
 }

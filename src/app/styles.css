@@ -494,29 +494,47 @@ a:hover {
 
 .reactionBar {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   flex-wrap: wrap;
   align-items: center;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .reactionPill {
   border: 1px solid var(--border);
-  background: color-mix(in oklab, var(--panel) 80%, transparent);
-  padding: 4px 8px;
-  font-size: 11px;
+  background: color-mix(in oklab, var(--panel) 88%, white 12%);
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
   color: var(--text);
   cursor: pointer;
+  border-radius: var(--radius-md);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    transform 140ms ease;
+}
+
+.reactionPill:hover {
+  background: color-mix(in oklab, var(--panel) 80%, white 20%);
+  border-color: color-mix(in oklab, var(--border) 60%, var(--accent) 40%);
 }
 
 .reactionPill img {
-  height: 1.3em;
-  vertical-align: -0.15em;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
+  flex: 0 0 auto;
 }
 
 .reactionPillActive {
   border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, var(--panel) 86%);
 }
 
 @media (prefers-color-scheme: light) {
