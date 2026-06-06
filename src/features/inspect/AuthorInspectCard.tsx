@@ -6,15 +6,12 @@ import { renderMfm } from "../../mfm/renderMfm";
 import type { MisskeyEmoji } from "../../integrations/misskey/emojis";
 import { buildEmojiResolver } from "../../integrations/misskey/emojis";
 import type { MisskeyUserProfile } from "../../integrations/misskey/api";
-import { VirtualList } from "../timeline/VirtualList";
 
 type Props = {
   author: MisskeyUserProfile["author"];
   profile?: MisskeyUserProfile;
   notes?: Post[];
   loadingMore?: boolean;
-  hasMore?: boolean;
-  onNearEnd?: () => void;
   globalEmojis: MisskeyEmoji[];
   onInspectPost?: (post: Post) => void;
   onInspectAuthor?: (author: Author) => void;
@@ -92,27 +89,19 @@ export function AuthorInspectCard(props: Props) {
           <div className="emptyState">Loading notes...</div>
         ) : props.notes.length > 0 ? (
           <div className="inspectNotesList">
-            <VirtualList
-              className="tileScroller"
-              items={props.notes}
-              itemKey={(note, index) => String(note.remoteId ?? note.uri ?? `${note.createdAt}-${index}`)}
-              estimateItemHeight={150}
-              overscan={4}
-              endThresholdPx={700}
-              onNearEnd={props.hasMore ? props.onNearEnd : undefined}
-              renderItem={(note) => (
-                <PostCard
-                  post={note}
-                  emojiList={props.globalEmojis}
-                  cwOpen={{}}
-                  cwKey={String(note.remoteId ?? note.uri ?? note.createdAt)}
-                  onToggleCw={() => {}}
-                  onInspectPost={props.onInspectPost}
-                  onInspectAuthor={(post) => props.onInspectAuthor?.(post.author)}
-                  hideActions={true}
-                />
-              )}
-            />
+            {props.notes.map((note) => (
+              <PostCard
+                key={String(note.remoteId ?? note.uri ?? note.createdAt)}
+                post={note}
+                emojiList={props.globalEmojis}
+                cwOpen={{}}
+                cwKey={String(note.remoteId ?? note.uri ?? note.createdAt)}
+                onToggleCw={() => {}}
+                onInspectPost={props.onInspectPost}
+                onInspectAuthor={(post) => props.onInspectAuthor?.(post.author)}
+                hideActions={true}
+              />
+            ))}
             {props.loadingMore ? <div className="inspectNotesStatus">Loading more…</div> : null}
           </div>
         ) : (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Author, Cursor, Post } from "../../domain/types";
 import { emitInspectIntent, onInspectIntent } from "../../state/events/inspectBus";
 import { Pill } from "../../components/ui/Pill";
@@ -29,6 +29,7 @@ function nowIso() {
 }
 
 export function TileInspect() {
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
   const [state, setState] = useState<ViewState>({ kind: "empty" });
   const [globalEmojis, setGlobalEmojis] = useState<MisskeyEmoji[]>([]);
   const [emojiOpenFor, setEmojiOpenFor] = useState<Post | null>(null);
@@ -136,7 +137,17 @@ export function TileInspect() {
   const title = state.kind === "empty" ? "Click a post or user" : state.kind === "post" ? "Post" : "User";
 
   return (
-    <div style={{ padding: 10, display: "grid", gap: 10, height: "100%", minHeight: 0 }}>
+    <div
+      ref={scrollerRef}
+      className="inspectScroller"
+      onScroll={(e) => {
+        if (state.kind !== "author" || state.loadingMore || !state.nextCursor) return;
+        const el = e.currentTarget;
+        const remaining = el.scrollHeight - (el.scrollTop + el.clientHeight);
+        if (remaining < 700) void loadMoreAuthorNotes();
+      }}
+      style={{ padding: 10, display: "grid", gap: 10, height: "100%", minHeight: 0 }}
+    >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ fontWeight: 900 }}>{title}</div>
         {"loadedAt" in state ? <Pill>{new Date(state.loadedAt).toLocaleTimeString()}</Pill> : <Pill>Inspect</Pill>}
@@ -150,8 +161,6 @@ export function TileInspect() {
           profile={state.profile}
           notes={state.notes}
           loadingMore={state.loadingMore === true}
-          hasMore={!!state.nextCursor}
-          onNearEnd={loadMoreAuthorNotes}
           globalEmojis={globalEmojis}
           onInspectPost={(post) => emitInspectIntent({ type: "post", post })}
           onInspectAuthor={(author) => emitInspectIntent({ type: "author", author })}
