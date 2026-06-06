@@ -43,10 +43,10 @@ export function AuthorInspectCard(props: Props) {
     <div className="inspectCard">
       <div className="inspectAuthorHeader">
         {props.author.avatarUrl ? <img className="avatar" src={props.author.avatarUrl} alt="" decoding="async" /> : <div className="avatar avatarFallback" />}
-        <div style={{ minWidth: 0 }}>
-          <div className="listTitleRow">
-            <span className="listTitle">{renderNameWithEmojis(displayName, profileEmojiResolver)}</span>
-            <span className="listHandleMuted">{props.author.handle}</span>
+        <div className="inspectAuthorBody">
+          <div className="inspectNameRow">
+            <div className="inspectDisplayName">{renderNameWithEmojis(displayName, profileEmojiResolver)}</div>
+            <div className="inspectHandle">{props.author.handle}</div>
           </div>
           <div className="inspectPills">
             {typeof profile?.noteCount === "number" ? <Pill>Notes: {profile.noteCount}</Pill> : null}

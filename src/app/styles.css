@@ -1692,8 +1692,43 @@ textarea.input {
 
 .inspectAuthorHeader {
   display: flex;
-  gap: 10px;
-  align-items: center;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.inspectAuthorHeader .avatar,
+.inspectAuthorHeader .avatarFallback {
+  margin-top: 2px;
+  flex: none;
+}
+
+.inspectAuthorBody {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.inspectNameRow {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.inspectDisplayName {
+  min-width: 0;
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1.2;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.inspectHandle {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 .inspectPills {
