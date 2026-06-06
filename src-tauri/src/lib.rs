@@ -1,4 +1,5 @@
 use serde::Serialize;
+use serde_json::json;
 use std::{
   io::{Read, Write},
   net::{TcpListener, TcpStream},
@@ -25,6 +26,98 @@ type SharedAuthState = Arc<Mutex<AuthState>>;
 struct AuthConfig {
   auth_callback_base_url: Option<String>,
   pending_auth_url: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FinishedMisskeyAccount {
+  id: String,
+  service_id: String,
+  instance_url: String,
+  access_token: String,
+  username: Option<String>,
+  name: Option<String>,
+  avatar_url: Option<String>,
+  created_at: String,
+  updated_at: String,
+}
+
+fn normalize_instance_url(raw: &str) -> Result<String, String> {
+  let value = raw.trim();
+  if value.is_empty() {
+    return Err("Instance URL is empty".into());
+  }
+  let prefixed = if value.contains("://") {
+    value.to_string()
+  } else {
+    format!("https://{value}")
+  };
+  let mut url = url::Url::parse(&prefixed).map_err(|error| error.to_string())?;
+  url.set_fragment(None);
+  url.set_query(None);
+  Ok(url.to_string().trim_end_matches('/').to_string())
+}
+
+#[tauri::command]
+fn finish_misskey_miauth(instance_url: String, session: String) -> Result<FinishedMisskeyAccount, String> {
+  let instance_url = normalize_instance_url(&instance_url)?;
+  let client = reqwest::blocking::Client::builder()
+    .build()
+    .map_err(|error| format!("Failed to create HTTP client: {error}"))?;
+
+  let check_url = format!("{instance_url}/api/miauth/{session}/check");
+  let check_res = client
+    .post(&check_url)
+    .header("Content-Type", "application/json")
+    .body("{}")
+    .send()
+    .map_err(|error| format!("MiAuth check request failed: {error}"))?;
+  if !check_res.status().is_success() {
+    return Err(format!("MiAuth check failed: {}", check_res.status()));
+  }
+  let check_json: serde_json::Value = check_res
+    .json()
+    .map_err(|error| format!("Failed to parse MiAuth check response: {error}"))?;
+  let token = check_json
+    .get("token")
+    .and_then(|value| value.as_str())
+    .ok_or_else(|| "MiAuth did not return a token".to_string())?;
+
+  let profile_res = client
+    .post(format!("{instance_url}/api/i"))
+    .json(&json!({ "i": token }))
+    .send()
+    .map_err(|error| format!("Profile request failed: {error}"))?;
+  if !profile_res.status().is_success() {
+    return Err(format!("Failed to resolve authorized account: {}", profile_res.status()));
+  }
+  let user: serde_json::Value = profile_res
+    .json()
+    .map_err(|error| format!("Failed to parse profile response: {error}"))?;
+
+  let username = user.get("username").and_then(|value| value.as_str()).map(str::to_string);
+  let name = user.get("name").and_then(|value| value.as_str()).map(str::to_string);
+  let avatar_url = user.get("avatarUrl").and_then(|value| value.as_str()).map(str::to_string);
+  let stable_user_key = user
+    .get("id")
+    .and_then(|value| value.as_str())
+    .filter(|value| !value.is_empty())
+    .map(str::to_string)
+    .or_else(|| username.as_ref().map(|value| format!("username:{}", value.to_lowercase())))
+    .unwrap_or_else(|| format!("token:{}", &token[..token.len().min(16)]));
+  let now = chrono::Utc::now().to_rfc3339();
+
+  Ok(FinishedMisskeyAccount {
+    id: format!("misskey:{instance_url}:{stable_user_key}"),
+    service_id: "misskey".into(),
+    instance_url,
+    access_token: token.to_string(),
+    username,
+    name,
+    avatar_url,
+    created_at: now.clone(),
+    updated_at: now,
+  })
 }
 
 #[tauri::command]
@@ -180,7 +273,7 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![get_auth_config, clear_pending_auth_callback, open_auth_window])
+    .invoke_handler(tauri::generate_handler![get_auth_config, clear_pending_auth_callback, open_auth_window, finish_misskey_miauth])
     .run(tauri::generate_context!())
     .expect("error while running FediTile");
 }

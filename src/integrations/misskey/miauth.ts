@@ -107,6 +107,12 @@ export async function finishMiAuth(args: {
 }): Promise<MisskeyAccount> {
   const instanceUrl = normalizeInstanceUrl(args.instanceUrl);
   pushAuthTrace("finish:start", `${instanceUrl} session=${args.session}`);
+  if (window.feditileDesktop?.platform === "tauri" && window.feditileDesktop.finishMisskeyMiAuth) {
+    const account = await window.feditileDesktop.finishMisskeyMiAuth({ instanceUrl, session: args.session });
+    await upsertMisskeyAccount(account);
+    pushAuthTrace("finish:stored", account.id);
+    return account;
+  }
   const url = `${instanceUrl}/api/miauth/${args.session}/check`;
   const res = await misskeyHttpFetch(url, { body: "{}" });
   pushAuthTrace("finish:check", `status=${res.status}`);

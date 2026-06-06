@@ -10,6 +10,17 @@ declare global {
       clearPendingAuthCallback?: () => void;
       onAuthCallback?: (listener: (url: string) => void) => () => void;
       openAuthWindow?: (url: string) => Promise<void>;
+      finishMisskeyMiAuth?: (args: { instanceUrl: string; session: string }) => Promise<{
+        id: string;
+        serviceId: "misskey";
+        instanceUrl: string;
+        accessToken: string;
+        username?: string;
+        name?: string;
+        avatarUrl?: string;
+        createdAt: string;
+        updatedAt: string;
+      }>;
     };
   }
 }
