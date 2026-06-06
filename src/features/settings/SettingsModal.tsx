@@ -18,6 +18,14 @@ function isDesktopRuntime() {
   return window.feditileDesktop?.platform === "tauri";
 }
 
+function formatAuthError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes("Load failed")) {
+    return "Failed to open the Misskey auth page. Check the instance URL, network reachability, or the instance certificate, then try again.";
+  }
+  return message;
+}
+
 export function SettingsModal(props: Props) {
   const [instanceUrl, setInstanceUrl] = useState("");
   const [misskeyAccounts, setMisskeyAccounts] = useState<MisskeyAccount[]>([]);
@@ -143,7 +151,7 @@ export function SettingsModal(props: Props) {
           <Pill>{misskeyAccounts.length} account(s)</Pill>
           <Button
             disabled={isDesktopRuntime() && !callbackUrl}
-            onClick={() => {
+            onClick={async () => {
               setError(null);
               try {
                 if (isDesktopRuntime() && !callbackUrl) {
@@ -164,10 +172,14 @@ export function SettingsModal(props: Props) {
                     "write:drive",
                   ],
                 });
-                if (isDesktopRuntime() && window.feditileDesktop?.openAuthWindow) void window.feditileDesktop.openAuthWindow(authorizeUrl);
-                else window.open(authorizeUrl, `feditile-misskey-auth-${Date.now()}`, "popup,width=520,height=780");
+                if (isDesktopRuntime() && window.feditileDesktop?.openAuthWindow) {
+                  await window.feditileDesktop.openAuthWindow(authorizeUrl);
+                } else {
+                  const popup = window.open(authorizeUrl, `feditile-misskey-auth-${Date.now()}`, "popup,width=520,height=780");
+                  if (!popup) throw new Error("Failed to open the auth popup window.");
+                }
               } catch (e) {
-                setError(String(e));
+                setError(formatAuthError(e));
               }
             }}
           >
