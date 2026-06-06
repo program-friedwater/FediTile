@@ -2,11 +2,12 @@ use serde::Serialize;
 use std::{
   io::{Read, Write},
   net::{TcpListener, TcpStream},
+  process::Command,
   sync::{Arc, Mutex},
   thread,
   time::Duration,
 };
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager};
 
 const AUTH_CALLBACK_PATH: &str = "/auth/misskey";
 const AUTH_CALLBACK_EVENT: &str = "feditile://auth-callback";
@@ -37,22 +38,35 @@ fn get_auth_config(state: tauri::State<'_, SharedAuthState>) -> AuthConfig {
 
 
 #[tauri::command]
-fn open_auth_window(app: AppHandle, url: String) -> Result<(), String> {
+fn open_auth_window(_app: AppHandle, url: String) -> Result<(), String> {
   let parsed = url::Url::parse(&url).map_err(|error| error.to_string())?;
-  if let Some(window) = app.get_webview_window("auth") {
-    let _ = window.set_focus();
-    let _ = window.navigate(parsed);
-    return Ok(());
-  }
+  let target = parsed.as_str();
 
-  WebviewWindowBuilder::new(&app, "auth", WebviewUrl::External(parsed))
-    .title("FediTile Auth")
-    .inner_size(520.0, 780.0)
-    .min_inner_size(420.0, 560.0)
-    .resizable(true)
-    .build()
+  #[cfg(target_os = "macos")]
+  let mut command = {
+    let mut command = Command::new("open");
+    command.arg(target);
+    command
+  };
+
+  #[cfg(target_os = "windows")]
+  let mut command = {
+    let mut command = Command::new("cmd");
+    command.args(["/C", "start", "", target]);
+    command
+  };
+
+  #[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+  let mut command = {
+    let mut command = Command::new("xdg-open");
+    command.arg(target);
+    command
+  };
+
+  command
+    .spawn()
     .map(|_| ())
-    .map_err(|error| error.to_string())
+    .map_err(|error| format!("Failed to open system browser: {error}"))
 }
 
 #[tauri::command]
