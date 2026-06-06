@@ -2,6 +2,9 @@ import { upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/
 import { pushAuthTrace } from "./authTrace";
 import { misskeyHttpFetch } from "./http";
 
+const PENDING_MIAUTH_PREFIX = "feditile:misskey-miauth-request:";
+const PENDING_MIAUTH_TTL_MS = 10 * 60 * 1000;
+
 function normalizeInstanceUrl(raw: string): string {
   const t = raw.trim();
   if (!t) throw new Error("Instance URL is empty");
@@ -17,6 +20,62 @@ function randomSession(): string {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function pendingRequestKey(requestId: string) {
+  return `${PENDING_MIAUTH_PREFIX}${requestId}`;
+}
+
+function cleanupExpiredPendingMiAuthRequests() {
+  try {
+    const now = Date.now();
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith(PENDING_MIAUTH_PREFIX)) continue;
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const parsed = JSON.parse(raw) as { createdAt?: number };
+      if (typeof parsed.createdAt !== "number" || now - parsed.createdAt > PENDING_MIAUTH_TTL_MS) {
+        localStorage.removeItem(key);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function storePendingMiAuthRequest(args: { requestId: string; instanceUrl: string; session: string }) {
+  cleanupExpiredPendingMiAuthRequests();
+  localStorage.setItem(
+    pendingRequestKey(args.requestId),
+    JSON.stringify({
+      instanceUrl: args.instanceUrl,
+      session: args.session,
+      createdAt: Date.now(),
+    }),
+  );
+}
+
+export function resolvePendingMiAuthRequest(
+  requestId: string,
+): { instanceUrl: string; session: string } | null {
+  cleanupExpiredPendingMiAuthRequests();
+  try {
+    const raw = localStorage.getItem(pendingRequestKey(requestId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { instanceUrl?: string; session?: string };
+    if (!parsed.instanceUrl || !parsed.session) return null;
+    return { instanceUrl: parsed.instanceUrl, session: parsed.session };
+  } catch {
+    return null;
+  }
+}
+
+export function clearPendingMiAuthRequest(requestId: string) {
+  try {
+    localStorage.removeItem(pendingRequestKey(requestId));
+  } catch {
+    // ignore
+  }
+}
+
 export type MiAuthStartArgs = {
   instanceUrl: string;
   appName: string;
@@ -24,20 +83,22 @@ export type MiAuthStartArgs = {
   permissions: string[];
 };
 
-export function startMiAuth(args: MiAuthStartArgs): { instanceUrl: string; session: string; authorizeUrl: string } {
+export function startMiAuth(args: MiAuthStartArgs): { instanceUrl: string; session: string; requestId: string; authorizeUrl: string } {
   const instanceUrl = normalizeInstanceUrl(args.instanceUrl);
   const session = randomSession();
+  const requestId = randomSession();
   const base = `${instanceUrl}/miauth/${session}`;
 
   const u = new URL(base);
   u.searchParams.set("name", args.appName);
-  u.searchParams.set("callback", args.callbackUrl.replace("{session}", encodeURIComponent(session)));
+  u.searchParams.set("callback", args.callbackUrl.replace("{requestId}", encodeURIComponent(requestId)));
   // MiAuth expects a single `permission` query parameter with comma-separated values.
   // Some servers may ignore multiple `permission=` parameters.
   u.searchParams.set("permission", args.permissions.join(","));
-  pushAuthTrace("start", `${instanceUrl} session=${session}`);
+  storePendingMiAuthRequest({ requestId, instanceUrl, session });
+  pushAuthTrace("start", `${instanceUrl} request=${requestId}`);
 
-  return { instanceUrl, session, authorizeUrl: u.toString() };
+  return { instanceUrl, session, requestId, authorizeUrl: u.toString() };
 }
 
 export async function finishMiAuth(args: {

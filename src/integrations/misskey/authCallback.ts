@@ -1,4 +1,4 @@
-import { finishMiAuth } from "./miauth";
+import { clearPendingMiAuthRequest, finishMiAuth, resolvePendingMiAuthRequest } from "./miauth";
 import { pushAuthTrace } from "./authTrace";
 
 const AUTH_COMPLETE_EVENT = "feditile:misskey-auth-complete";
@@ -24,13 +24,16 @@ async function processCallbackUrl(
   hash.params.forEach((value, key) => {
     if (!params.has(key)) params.set(key, value);
   });
-  const instanceUrl = params.get("instanceUrl") ?? params.get("instance") ?? "";
-  const session = params.get("session") ?? "";
-  if (!instanceUrl || !session) return { handled: true, ok: false, error: "Missing instanceUrl/session" };
+  const requestId = params.get("requestId") ?? "";
+  const pending = requestId ? resolvePendingMiAuthRequest(requestId) : null;
+  const instanceUrl = pending?.instanceUrl ?? params.get("instanceUrl") ?? params.get("instance") ?? "";
+  const session = pending?.session ?? params.get("session") ?? "";
+  if (!instanceUrl || !session) return { handled: true, ok: false, error: "Missing auth request state" };
 
   try {
-    pushAuthTrace("callback:params", `instance=${instanceUrl} session=${session}`);
+    pushAuthTrace("callback:params", `instance=${instanceUrl} request=${requestId || "legacy"}`);
     const account = await finishMiAuth({ instanceUrl, session });
+    if (requestId) clearPendingMiAuthRequest(requestId);
     try {
       localStorage.setItem(`${AUTH_RESULT_PREFIX}${session}`, JSON.stringify({ ok: true, account, at: Date.now() }));
     } catch {
@@ -57,6 +60,7 @@ async function processCallbackUrl(
     return { handled: true, ok: true };
   } catch (e) {
     pushAuthTrace("callback:error", String(e));
+    if (requestId) clearPendingMiAuthRequest(requestId);
     try {
       localStorage.setItem(`${AUTH_RESULT_PREFIX}${session}`, JSON.stringify({ ok: false, error: String(e), at: Date.now() }));
     } catch {

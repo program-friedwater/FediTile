@@ -157,7 +157,7 @@ export function SettingsModal(props: Props) {
                 const { authorizeUrl } = startMiAuth({
                   instanceUrl,
                   appName: "FediTile",
-                  callbackUrl: `${callbackUrl}?instanceUrl=${encodeURIComponent(instanceUrl)}&session={session}`,
+                  callbackUrl: `${callbackUrl}?requestId={requestId}`,
                   permissions: [
                     "read:account",
                     "read:notes",
