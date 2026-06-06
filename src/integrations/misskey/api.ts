@@ -353,16 +353,24 @@ export async function fetchReplies(account: MisskeyAccount, args: { noteId: stri
   return notes.map((n) => normalizeMisskeyNote(account, n));
 }
 
-export async function fetchUserNotes(account: MisskeyAccount, args: { userId: string; limit?: number }): Promise<Post[]> {
+export async function fetchUserNotes(
+  account: MisskeyAccount,
+  args: { userId: string; limit?: number; cursor?: Cursor },
+): Promise<{ items: Post[]; nextCursor?: Cursor }> {
   const limit = typeof args.limit === "number" ? args.limit : 20;
-  const notes = await postJson<MisskeyNote[]>(account, "users/notes", {
+  const body: Record<string, unknown> = {
     userId: args.userId,
     limit,
     includeReplies: true,
     includeMyRenotes: false,
     withFiles: false,
-  });
-  return notes.map((n) => normalizeMisskeyNote(account, n));
+  };
+  if (args.cursor?.type === "max_id") body.untilId = args.cursor.value;
+  if (args.cursor?.type === "since_id") body.sinceId = args.cursor.value;
+  const notes = await postJson<MisskeyNote[]>(account, "users/notes", body);
+  const items = notes.map((n) => normalizeMisskeyNote(account, n));
+  const nextCursor: Cursor | undefined = notes.length > 0 ? { type: "max_id", value: String(notes[notes.length - 1]?.id) } : undefined;
+  return { items, nextCursor };
 }
 
 export async function showUser(

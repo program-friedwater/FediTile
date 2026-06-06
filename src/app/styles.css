@@ -1679,8 +1679,11 @@ textarea.input {
   border: none;
   background: transparent;
   padding: 0;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+  height: 100%;
+  min-height: 0;
 }
 
 .inspectReply {
@@ -1744,6 +1747,26 @@ textarea.input {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+.inspectNotesSection {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.inspectNotesList {
+  min-height: 0;
+  height: 100%;
+  display: grid;
+}
+
+.inspectNotesStatus {
+  padding: 10px 0 2px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .inspectRoleList {

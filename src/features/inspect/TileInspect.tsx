@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { Author, Post } from "../../domain/types";
+import type { Author, Cursor, Post } from "../../domain/types";
 import { emitInspectIntent, onInspectIntent } from "../../state/events/inspectBus";
 import { Pill } from "../../components/ui/Pill";
 import { getEmojis, type MisskeyEmoji } from "../../integrations/misskey/emojis";
@@ -14,7 +14,15 @@ import { AuthorInspectCard } from "./AuthorInspectCard";
 type ViewState =
   | { kind: "empty" }
   | { kind: "post"; post: Post; replies: Post[]; loadedAt: string }
-  | { kind: "author"; author: Author; loadedAt: string; profile?: MisskeyUserProfile; notes?: Post[] };
+  | {
+      kind: "author";
+      author: Author;
+      loadedAt: string;
+      profile?: MisskeyUserProfile;
+      notes?: Post[];
+      nextCursor?: Cursor;
+      loadingMore?: boolean;
+    };
 
 function nowIso() {
   return new Date().toISOString();
@@ -74,11 +82,19 @@ export function TileInspect() {
           if (!account) return;
           const remoteId = (intent.author.remoteId as any as string | undefined) ?? "";
           if (!remoteId) return;
-          const [profile, notes] = await Promise.all([
+          const [profile, notesPage] = await Promise.all([
             showUser(account, { userId: remoteId }),
-            fetchUserNotes(account, { userId: remoteId, limit: 20 }).catch(() => [] as Post[]),
+            fetchUserNotes(account, { userId: remoteId, limit: 20 }).catch(() => ({ items: [] as Post[], nextCursor: undefined })),
           ]);
-          setState({ kind: "author", author: profile.author, loadedAt: nowIso(), profile, notes });
+          setState({
+            kind: "author",
+            author: profile.author,
+            loadedAt: nowIso(),
+            profile,
+            notes: notesPage.items,
+            nextCursor: notesPage.nextCursor,
+            loadingMore: false,
+          });
         } catch {
           // ignore
         }
@@ -86,10 +102,41 @@ export function TileInspect() {
     });
   }, []);
 
+  const loadMoreAuthorNotes = async () => {
+    if (state.kind !== "author" || state.loadingMore || !state.nextCursor) return;
+    const remoteId = (state.author.remoteId as any as string | undefined) ?? "";
+    if (!remoteId) return;
+    setState((prev) => (prev.kind === "author" ? { ...prev, loadingMore: true } : prev));
+    try {
+      const accounts = await loadAccounts();
+      const account = getDefaultMisskeyAccount(accounts);
+      if (!account) return;
+      const page = await fetchUserNotes(account, { userId: remoteId, limit: 20, cursor: state.nextCursor });
+      setState((prev) => {
+        if (prev.kind !== "author") return prev;
+        const merged = [...(prev.notes ?? [])];
+        for (const note of page.items) {
+          const key = String(note.remoteId ?? note.uri ?? note.createdAt);
+          if (merged.some((item) => String(item.remoteId ?? item.uri ?? item.createdAt) === key)) continue;
+          merged.push(note);
+        }
+        return {
+          ...prev,
+          notes: merged,
+          nextCursor: page.nextCursor,
+          loadingMore: false,
+          loadedAt: nowIso(),
+        };
+      });
+    } catch {
+      setState((prev) => (prev.kind === "author" ? { ...prev, loadingMore: false } : prev));
+    }
+  };
+
   const title = state.kind === "empty" ? "Click a post or user" : state.kind === "post" ? "Post" : "User";
 
   return (
-    <div style={{ padding: 10, display: "grid", gap: 10 }}>
+    <div style={{ padding: 10, display: "grid", gap: 10, height: "100%", minHeight: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
         <div style={{ fontWeight: 900 }}>{title}</div>
         {"loadedAt" in state ? <Pill>{new Date(state.loadedAt).toLocaleTimeString()}</Pill> : <Pill>Inspect</Pill>}
@@ -102,6 +149,9 @@ export function TileInspect() {
           author={state.author}
           profile={state.profile}
           notes={state.notes}
+          loadingMore={state.loadingMore === true}
+          hasMore={!!state.nextCursor}
+          onNearEnd={loadMoreAuthorNotes}
           globalEmojis={globalEmojis}
           onInspectPost={(post) => emitInspectIntent({ type: "post", post })}
           onInspectAuthor={(author) => emitInspectIntent({ type: "author", author })}
