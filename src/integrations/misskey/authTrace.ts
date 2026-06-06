@@ -1,6 +1,6 @@
 const TRACE_KEY = "feditile:misskey-auth-trace";
 
-type TraceEntry = {
+export type TraceEntry = {
   at: number;
   step: string;
   detail?: string;

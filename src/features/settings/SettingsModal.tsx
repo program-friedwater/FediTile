@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { loadAccounts, onAccountsChanged, removeMisskeyAccount, setDefaultMisskeyAccount, upsertMisskeyAccount, type MisskeyAccount } from "../../state/accounts/accountsStore";
 import { startMiAuth } from "../../integrations/misskey/miauth";
+import { clearAuthTrace, readAuthTrace, type TraceEntry } from "../../integrations/misskey/authTrace";
 import { Modal } from "../../components/ui/Modal";
 import { Button } from "../../components/ui/Button";
 import { FieldRow, Input, Label, Select } from "../../components/ui/Field";
@@ -32,6 +33,7 @@ export function SettingsModal(props: Props) {
   const [defaultAccountId, setDefaultAccountId] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [desktopCallbackBaseUrl, setDesktopCallbackBaseUrl] = useState<string | null>(null);
+  const [authTrace, setAuthTrace] = useState<TraceEntry[]>([]);
 
   useEffect(() => {
     if (!props.isOpen || !isDesktopRuntime()) return;
@@ -78,6 +80,14 @@ export function SettingsModal(props: Props) {
         .catch((e) => setError(`Failed to load accounts: ${String(e)}`));
     refresh();
     return onAccountsChanged(refresh);
+  }, [props.isOpen]);
+
+  useEffect(() => {
+    if (!props.isOpen) return;
+    const refreshTrace = () => setAuthTrace(readAuthTrace());
+    refreshTrace();
+    const timer = window.setInterval(refreshTrace, 600);
+    return () => window.clearInterval(timer);
   }, [props.isOpen]);
 
   useEffect(() => {
@@ -260,6 +270,45 @@ export function SettingsModal(props: Props) {
       <FieldRow>
         <Label>Storage</Label>
         <Pill>Workspace is stored in localStorage.</Pill>
+      </FieldRow>
+
+      <FieldRow>
+        <Label>Auth Debug</Label>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
+          <Pill>{authTrace.length} trace entr{authTrace.length === 1 ? "y" : "ies"}</Pill>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <Button onClick={() => setAuthTrace(readAuthTrace())}>Refresh</Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                clearAuthTrace();
+                setAuthTrace([]);
+              }}
+            >
+              Clear
+            </Button>
+          </div>
+        </div>
+        <div className="inspectReply" style={{ maxHeight: 240, overflow: "auto" }}>
+          {authTrace.length === 0 ? (
+            <div className="listMeta" style={{ marginTop: 0 }}>No auth trace yet.</div>
+          ) : (
+            <div className="list" style={{ gap: 8 }}>
+              {authTrace.map((entry, index) => (
+                <div key={`${entry.at}:${entry.step}:${index}`} className="listItem" style={{ padding: "8px 10px" }}>
+                  <div className="listTitle" style={{ fontSize: 13 }}>
+                    {new Date(entry.at).toLocaleTimeString()} · {entry.step}
+                  </div>
+                  {entry.detail ? (
+                    <div className="listMeta" style={{ marginTop: 4, fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                      {entry.detail}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </FieldRow>
 
       {props.onResetWorkspace ? (
