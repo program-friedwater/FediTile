@@ -5,6 +5,12 @@ type AuthConfig = {
   pendingAuthUrl?: string | null;
 };
 
+type DesktopHttpResponse = {
+  status: number;
+  statusText: string;
+  body: string;
+};
+
 declare global {
   interface Window {
     __TAURI_INTERNALS__?: unknown;
@@ -26,6 +32,7 @@ declare global {
         createdAt: string;
         updatedAt: string;
       }>;
+      misskeyHttpRequest?: (args: { url: string; method?: string; body?: string; contentType?: string }) => Promise<DesktopHttpResponse>;
     };
   }
 }
@@ -76,6 +83,9 @@ export async function setupDesktopBridge() {
     },
     async finishMisskeyMiAuth(args) {
       return invoke("finish_misskey_miauth", args);
+    },
+    async misskeyHttpRequest(args) {
+      return invoke("misskey_http_request", args);
     },
   };
 

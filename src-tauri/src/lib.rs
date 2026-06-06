@@ -42,6 +42,14 @@ struct FinishedMisskeyAccount {
   updated_at: String,
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct HttpResponsePayload {
+  status: u16,
+  status_text: String,
+  body: String,
+}
+
 fn normalize_instance_url(raw: &str) -> Result<String, String> {
   let value = raw.trim();
   if value.is_empty() {
@@ -117,6 +125,40 @@ fn finish_misskey_miauth(instance_url: String, session: String) -> Result<Finish
     avatar_url,
     created_at: now.clone(),
     updated_at: now,
+  })
+}
+
+#[tauri::command]
+fn misskey_http_request(url: String, method: Option<String>, body: Option<String>, content_type: Option<String>) -> Result<HttpResponsePayload, String> {
+  let parsed = url::Url::parse(&url).map_err(|error| format!("Invalid URL: {error}"))?;
+  match parsed.scheme() {
+    "http" | "https" => {}
+    _ => return Err("Only http/https URLs are allowed".into()),
+  }
+
+  let request_method = method.unwrap_or_else(|| "POST".into());
+  let client = reqwest::blocking::Client::builder()
+    .build()
+    .map_err(|error| format!("Failed to create HTTP client: {error}"))?;
+
+  let method = reqwest::Method::from_bytes(request_method.as_bytes()).map_err(|error| format!("Invalid HTTP method: {error}"))?;
+  let mut request = client.request(method, parsed);
+  if let Some(content_type) = content_type {
+    request = request.header("Content-Type", content_type);
+  }
+  if let Some(body) = body {
+    request = request.body(body);
+  }
+
+  let response = request.send().map_err(|error| format!("HTTP request failed: {error}"))?;
+  let status = response.status();
+  let status_text = status.canonical_reason().unwrap_or("").to_string();
+  let body = response.text().map_err(|error| format!("Failed to read response body: {error}"))?;
+
+  Ok(HttpResponsePayload {
+    status: status.as_u16(),
+    status_text,
+    body,
   })
 }
 
@@ -273,7 +315,13 @@ pub fn run() {
       }
       Ok(())
     })
-    .invoke_handler(tauri::generate_handler![get_auth_config, clear_pending_auth_callback, open_auth_window, finish_misskey_miauth])
+    .invoke_handler(tauri::generate_handler![
+      get_auth_config,
+      clear_pending_auth_callback,
+      open_auth_window,
+      finish_misskey_miauth,
+      misskey_http_request
+    ])
     .run(tauri::generate_context!())
     .expect("error while running FediTile");
 }

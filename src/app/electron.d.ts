@@ -21,6 +21,11 @@ declare global {
         createdAt: string;
         updatedAt: string;
       }>;
+      misskeyHttpRequest?: (args: { url: string; method?: string; body?: string; contentType?: string }) => Promise<{
+        status: number;
+        statusText: string;
+        body: string;
+      }>;
     };
   }
 }
